@@ -1,0 +1,811 @@
+<title>xIDC Operations Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: ops console — left rail nav, top status bar, bento grid of panels; digital-twin views drawn in isometric SVG */
+:root{
+  --bg:#EEF1F5; --rail:#FFFFFF; --panel:#FFFFFF; --panel-2:#F4F6F9; --panel-3:#E9EDF2; --line:#DCE2EA;
+  --fg:#0F1B2B; --muted:#5A6B80; --faint:#8C9AAD;
+  --accent:#E08A12; --accent-2:#2F7DF6; --accent-soft:#FDEFD9; --accent-2-soft:#E3EDFE;
+  --ok:#16A06A; --warn:#D08A00; --crit:#E0482F; --fatal:#B0185A;
+  --ok-soft:#DDF4EA; --warn-soft:#FCF1D6; --crit-soft:#FCE3DD; --fatal-soft:#F7DDE8;
+  --h0:#3E7BEF; --h1:#22B5C4; --h2:#7CC948; --h3:#F2B630; --h4:#EC5A34;
+  --pr:#E0533F; --ps:#7D8A9C; --pt:#3F7CF0;
+  --slab:#D9E0E9; --shadow:0 1px 2px rgba(15,27,43,.06),0 4px 16px rgba(15,27,43,.05);
+  --ui:'IBM Plex Sans','IBM Plex Sans KR','Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+  --mono:'JetBrains Mono',Consolas,'Courier New',monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A111C; --rail:#0D1624; --panel:#111C2C; --panel-2:#162336; --panel-3:#1C2B41; --line:#22324A;
+  --fg:#E7EDF5; --muted:#9AABC0; --faint:#6B7E96;
+  --accent:#F5A93A; --accent-2:#5B9BFF; --accent-soft:#33260F; --accent-2-soft:#14284A;
+  --ok:#3DD598; --warn:#F5BD3D; --crit:#FF6E55; --fatal:#FF5C9D;
+  --ok-soft:#10352A; --warn-soft:#3A2F12; --crit-soft:#41211B; --fatal-soft:#3F1730;
+  --h0:#4C8DFF; --h1:#2CCBDA; --h2:#8EDB57; --h3:#F7C443; --h4:#FF6B45;
+  --pr:#FF6B57; --ps:#A9B6C8; --pt:#5B9BFF;
+  --slab:#1D2C42; --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.25);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A111C; --rail:#0D1624; --panel:#111C2C; --panel-2:#162336; --panel-3:#1C2B41; --line:#22324A;
+  --fg:#E7EDF5; --muted:#9AABC0; --faint:#6B7E96;
+  --accent:#F5A93A; --accent-2:#5B9BFF; --accent-soft:#33260F; --accent-2-soft:#14284A;
+  --ok:#3DD598; --warn:#F5BD3D; --crit:#FF6E55; --fatal:#FF5C9D;
+  --ok-soft:#10352A; --warn-soft:#3A2F12; --crit-soft:#41211B; --fatal-soft:#3F1730;
+  --h0:#4C8DFF; --h1:#2CCBDA; --h2:#8EDB57; --h3:#F7C443; --h4:#FF6B45;
+  --pr:#FF6B57; --ps:#A9B6C8; --pt:#5B9BFF;
+  --slab:#1D2C42; --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.25);
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:14px;line-height:1.5}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100%}
+.rail{background:var(--rail);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 10px 12px}
+.brand .mk{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#F06A2C);display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--mono);font-size:13px}
+.brand b{font-size:17px}
+.brand small{display:block;font-size:11px;color:var(--muted);line-height:1.2}
+.rail .grp{font-size:11px;letter-spacing:.08em;color:var(--faint);padding:10px 10px 3px;text-transform:uppercase}
+.rail button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:7px 10px;cursor:pointer;color:var(--muted);font-weight:500}
+.rail button svg{width:18px;height:18px;flex:none}
+.rail button:hover{background:var(--panel-2);color:var(--fg)}
+.rail button[aria-current="page"]{background:var(--accent-soft);color:var(--fg)}
+.rail button[aria-current="page"] svg{color:var(--accent)}
+.rail .new{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;background:var(--accent-2-soft);color:var(--accent-2)}
+.rail .foot{margin-top:auto;padding:12px 10px 0;font-size:11px;color:var(--faint)}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px 24px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top h1{font-size:20px;margin:0;font-weight:700;text-wrap:balance}
+.crumb{font-size:12px;color:var(--muted)}
+.top .sp{flex:1}
+.chips{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.chips button{background:none;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:var(--shadow)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+.iconbtn{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12px}
+.iconbtn svg{width:16px;height:16px}
+.badge{min-width:18px;padding:0 5px;border-radius:999px;background:var(--crit);color:#fff;font-family:var(--mono);font-size:11px;text-align:center;line-height:18px}
+.content{padding:20px 24px 32px;display:grid;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr));align-content:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);min-width:0;display:flex;flex-direction:column;gap:12px}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ch h3{font-size:14px;margin:0;font-weight:600}
+.sub{font-size:12px;color:var(--muted)}
+.c2{grid-column:span 2}.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c9{grid-column:span 9}.c12{grid-column:span 12}
+@media (max-width:1180px){.c2,.c3{grid-column:span 6}.c4,.c5,.c6,.c7,.c8,.c9{grid-column:span 12}}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:sticky;top:0;z-index:30;height:auto;flex-direction:row;overflow-x:auto;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
+  .rail .grp,.rail .foot,.brand small,.rail .new{display:none}
+  .brand{padding:0 8px 0 0}
+  .rail button{width:auto;white-space:nowrap}
+  .top{position:static}.content{padding:16px}
+}
+@media (max-width:560px){.c2,.c3{grid-column:span 12}}
+.kpi{gap:6px}
+.kpi .l{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:6px}
+.kpi .v{font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.01em;line-height:1.1;white-space:nowrap}
+.kpi .v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+.kpi .d{font-size:12px;font-family:var(--mono)}
+.up{color:var(--crit)}.down{color:var(--ok)}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+svg .lbl{fill:var(--fg);font-family:var(--ui);font-size:12px;font-weight:600}
+.chart{width:100%;height:auto;display:block}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) 86px;gap:10px;align-items:center;font-size:13px}
+.bar .t{height:8px;border-radius:999px;background:var(--panel-3);overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:999px;transition:width .6s}
+.bar .n{text-align:right;font-family:var(--mono)}
+.bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.s-ok{background:var(--ok-soft);color:var(--ok)}.s-warn,.sev-Warning,.st-ack{background:var(--warn-soft);color:var(--warn)}
+.s-crit,.sev-Critical,.st-open{background:var(--crit-soft);color:var(--crit)}.sev-Fatal{background:var(--fatal-soft);color:var(--fatal)}
+.st-closed,.s-off{background:var(--panel-3);color:var(--muted)}
+.s-info{background:var(--accent-2-soft);color:var(--accent-2)}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--faint)}
+.btn.pri{background:var(--fg);border-color:var(--fg);color:var(--panel)}
+.btn.acc{background:var(--accent);border-color:var(--accent);color:#1A1205}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:3px 10px;font-size:12px}
+select.f,input.f{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 10px;min-width:0}
+.list{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:13px;min-width:0}
+.li:last-child{border-bottom:0}
+.li .grow{flex:1;min-width:0}
+.li .grow b{font-weight:600}
+.li .grow .sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.r{text-align:right}
+tbody tr:hover{background:var(--panel-2)}
+tr.sel td{background:var(--panel-2)}
+.stat{display:flex;flex-direction:column;gap:2px;background:var(--panel-2);border-radius:10px;padding:10px 12px;min-width:0}
+.stat .l{font-size:11px;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:17px;font-weight:600;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:28px 8px}
+.hit{cursor:pointer}.hit:hover{filter:brightness(1.12)}
+.switch{position:relative;width:38px;height:22px;border-radius:999px;background:var(--panel-3);border:1px solid var(--line);cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--accent);border-color:var(--accent)}
+.switch[aria-checked="true"]::after{left:18px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.board{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.mainbrk{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;flex-wrap:wrap}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cols3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:640px){.cols,.cols3{grid-template-columns:1fr}}
+.brk{display:grid;grid-template-columns:24px 22px minmax(0,1fr) 54px 50px;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;text-align:left;width:100%}
+.brk[aria-pressed="true"]{border-color:var(--accent-2);box-shadow:0 0 0 2px var(--accent-2-soft)}
+.brk .no{font-family:var(--mono);color:var(--faint)}
+.ph{display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 3px;border-radius:5px;font-family:var(--mono);font-size:11px;font-weight:600;color:#fff}
+.ph-R{background:#D9473A}.ph-S{background:#56616F}.ph-T{background:#2F6FE0}.ph-3P{background:#7A4FD6}
+.brk .ld{height:6px;border-radius:999px;background:var(--panel-3);overflow:hidden}
+.brk .ld i{display:block;height:100%;border-radius:999px}
+.brk .a{font-family:var(--mono);text-align:right}
+.elev{display:flex;flex-direction:column;gap:2px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px}
+.u{display:grid;grid-template-columns:24px 1fr;gap:6px;align-items:stretch;font-size:11px}
+.u .n{font-family:var(--mono);color:var(--faint);text-align:right;line-height:14px}
+.dev{border-radius:4px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;background:var(--panel);border:1px solid var(--line);overflow:hidden;white-space:nowrap}
+.dev b{font-family:var(--mono);font-weight:600}
+.slot{border-radius:3px;border:1px dashed var(--line);height:14px}
+.units{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.units{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.unit{background:var(--panel-2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.unit .h{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.dots{display:grid;grid-template-columns:1fr auto;gap:2px 8px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.chc{border-radius:6px;padding:4px 5px;font-size:10px;font-family:var(--mono);line-height:1.25;color:#0F1B2B;min-width:0;overflow:hidden;white-space:nowrap}
+.chc b{display:block;font-size:11px}
+.spec{display:flex;flex-wrap:wrap;gap:6px}
+.spec span{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--muted)}
+.tree{display:flex;flex-direction:column;gap:4px}
+.tree .g{font-size:11px;color:var(--faint);letter-spacing:.06em;margin-top:8px}
+.tree button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.tree button[aria-current="true"]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.chk{display:grid;grid-template-columns:minmax(0,1fr) 120px 220px;gap:10px;align-items:center;padding:10px 12px;background:var(--panel-2);border-radius:10px}
+@media (max-width:700px){.chk{grid-template-columns:1fr}}
+.chk .t b{display:block;font-weight:600}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg2 label{padding:5px 12px;cursor:pointer;font-size:13px;color:var(--muted);background:var(--panel)}
+.seg2 input{position:absolute;opacity:0;pointer-events:none}
+.seg2 label:has(input:checked){background:var(--panel-3);color:var(--fg);font-weight:600}
+.seg2 label.badc:has(input:checked){background:var(--crit-soft);color:var(--crit)}
+.numin{width:96px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-family:var(--mono)}
+.numin.bad{border-color:var(--crit);color:var(--crit)}
+.range{height:6px;border-radius:999px;background:var(--panel-3);position:relative;margin-top:6px}
+.range i{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--ok) 45%,transparent);border-radius:999px}
+.range b{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:var(--fg)}
+.ins{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.ins:last-child{border-bottom:0}
+.ins .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:700;font-family:var(--mono)}
+.toast{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:50;width:min(380px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 18px 40px rgba(0,0,0,.25);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.toast .row{justify-content:space-between}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <nav class="rail" id="rail" aria-label="menu"></nav>
+  <div class="main">
+    <div class="top">
+      <div><div class="crumb" id="crumb"></div><h1 id="title"></h1></div>
+      <div class="sp"></div>
+      <div class="chips" id="centers" role="group"></div>
+      <span class="live" id="live"></span>
+      <button class="iconbtn" id="langBtn" type="button"></button>
+      <button class="iconbtn" id="themeBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+      <button class="iconbtn" id="bell" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/></svg><span class="badge" id="bellCnt">0</span></button>
+    </div>
+    <main class="content" id="view" aria-live="polite"></main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="alertdialog" aria-labelledby="toastMsg">
+  <div class="row"><strong id="toastH"></strong><span class="pill" id="toastSev"></span></div>
+  <div id="toastMsg" style="font-size:13px"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn sm" id="toastAck" type="button"></button><button class="btn sm pri" id="toastGo" type="button"></button></div>
+</div>
+
+<script>
+const DEFAULT_LANG='en';
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), V=$('#view');
+/* ---------- language & boot tokens: #view.dark.en ---------- */
+const TOK=location.hash.slice(1).split('.');
+let LANG=DEFAULT_LANG; try{const l=localStorage.getItem('xidc-lang');if(l==='en'||l==='ko')LANG=l}catch(e){}
+if(TOK.includes('en'))LANG='en'; if(TOK.includes('ko'))LANG='ko';
+document.documentElement.lang=LANG;
+const EN=LANG==='en', L=(k,e)=>EN?e:k;
+let seed=20131015; const rnd=()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296};
+const hrnd=s=>{let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);let x=h>>>0;return()=>{x=(x*1664525+1013904223)%4294967296;return x/4294967296}};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const LOC=EN?'en-US':'ko-KR';
+const fmt=(n,d=0)=>Number(n).toLocaleString(LOC,{minimumFractionDigits:d,maximumFractionDigits:d});
+const kfmt=kw=>kw>=1000?fmt(kw/1000,2)+' MW':fmt(kw,kw<100?1:0)+' kW';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=(n,l=2)=>String(n).padStart(l,'0');
+const now=()=>new Date();
+const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+/* ---------- electrical model: Korean sites 220/380 V, 60 Hz ---------- */
+const VLN=220, VLL=380, PF=.96;
+const amps=(kw,ph)=>ph===1?kw*1000/(VLN*PF):kw*1000/(1.732*VLL*PF);
+const brkKW=(a,ph)=>ph===1?VLN*a*PF/1000:1.732*VLL*a*PF/1000;
+const TYPES={
+  std:{ph:1,brk:32,lbl:L('서버랙','Server rack'),u:[.35,.8]},
+  net:{ph:1,brk:32,lbl:L('네트워크랙','Network rack'),u:[.18,.38]},
+  hpc:{ph:3,brk:32,lbl:L('HPC 랙','HPC rack'),u:[.5,.85]},
+  gpu:{ph:3,brk:63,lbl:L('GPU 랙 (수랭)','GPU rack (liquid)'),u:[.58,.9]}
+};
+Object.values(TYPES).forEach(t=>t.cap=+brkKW(t.brk,t.ph).toFixed(1));
+const SVC=EN?['Search','Mail','Cloud','Shopping','Maps','Video']:['검색','메일','클라우드','쇼핑','지도','동영상'];
+const CUST=(EN?['Finance','Gaming','Cloud MSP','Media','Public sector','AI startup']:['금융','게임','클라우드 MSP','미디어','공공','AI 스타트업']).map((n,i)=>`C${pad(i+1)} ${n}`);
+const SITES=[
+  {name:L('춘천 각','Chuncheon GAK'),code:'CCN',rooms:[
+    {n:'N-1',f:L('본관 1F','Main 1F'),fl:0,kind:'mix',rows:8,cols:12,design:720,cool:900},
+    {n:'N-2',f:L('본관 1F','Main 1F'),fl:0,kind:'mix',rows:8,cols:12,design:720,cool:900},
+    {n:'S-1',f:L('본관 2F','Main 2F'),fl:1,kind:'colo',rows:8,cols:12,design:680,cool:850},
+    {n:'AI-1',f:L('본관 3F','Main 3F'),fl:2,kind:'ai',rows:4,cols:10,design:1600,cool:1900}]},
+  {name:L('가산','Gasan'),code:'GSN',rooms:[
+    {n:'A',f:'4F',fl:0,kind:'colo',rows:8,cols:12,design:640,cool:800},
+    {n:'B',f:'4F',fl:0,kind:'colo',rows:8,cols:12,design:640,cool:800},
+    {n:'C',f:'5F',fl:1,kind:'mix',rows:8,cols:12,design:640,cool:800}]},
+  {name:L('마북','Mabuk'),code:'MBK',rooms:[
+    {n:'H1',f:'2F',fl:0,kind:'mix',rows:8,cols:12,design:560,cool:700},
+    {n:'H2',f:'3F',fl:1,kind:'mix',rows:8,cols:12,design:560,cool:700}]}
+];
+const rname=r=>`${r.f} ${r.n}`;
+const ROWL='ABCDEFGH';
+function makeRoom(room){
+  const R=[], rows=ROWL.slice(0,room.rows).split('');
+  rows.forEach((r,ri)=>{for(let c=1;c<=room.cols;c++){
+    let type='std';
+    if(room.kind==='ai')type='gpu'; else if(c===1||c===room.cols)type='net'; else if((r==='G'||r==='H')&&c%4===0)type='hpc';
+    const empty=room.kind!=='ai'&&type==='std'&&rnd()<.06, T=TYPES[type];
+    const u=T.u[0]+rnd()*(T.u[1]-T.u[0]);
+    const base=empty?0:+(T.cap*u).toFixed(2);
+    const owner=room.kind==='colo'?CUST[(ri>>1)%5]:room.kind==='ai'?CUST[5]:SVC[(c+ri)%SVC.length];
+    const inlet=20.6+rnd()*3.2+(type==='hpc'?1:0);
+    R.push({id:`${r}-${pad(c)}`,row:r,col:c,type,empty,base,kw:base,cap:T.cap,ph:T.ph,brk:T.brk,owner,inlet,inletB:inlet,split:.47+rnd()*.06,mapped:rnd()>.08});
+  }});
+  return R;
+}
+SITES.forEach(s=>s.rooms.forEach(r=>{r.racks=makeRoom(r)}));
+const OVH={cool:.262,ups:.054,light:.018};
+let ci=0, ri=0, mode='util', selRack='C-05', selMeter=0, selCirc=1, view='overview', selCust=0;
+const site=()=>SITES[ci], room=()=>site().rooms[ri];
+const rstats=r=>{const l=r.racks.filter(k=>!k.empty);const used=l.reduce((s,k)=>s+k.kw,0), cap=l.reduce((s,k)=>s+k.cap,0);
+  const inl=l.map(k=>k.inlet);return {n:r.racks.length,live:l.length,used,cap,design:r.design,pct:used/r.design*100,avg:used/l.length,max:Math.max(...l.map(k=>k.kw)),
+  inAvg:inl.reduce((a,b)=>a+b,0)/inl.length,inMax:Math.max(...inl),outAvg:l.reduce((s,k)=>s+k.inlet+outDT(k),0)/l.length,hot:l.filter(k=>k.inlet>27).length,cool:r.cool,coolLoad:used*1.02}};
+const outDT=k=>k.type==='gpu'?4.5:6+k.kw/k.cap*9;
+const sstats=s=>{const rs=s.rooms.map(rstats);const it=rs.reduce((a,x)=>a+x.used,0), design=rs.reduce((a,x)=>a+x.design,0);
+  const pue=1+OVH.cool*(1+.05*Math.sin(Date.now()/9e4))+OVH.ups+OVH.light;return {rs,it,design,pue,fac:it*pue}};
+SITES.forEach(s=>{const it=sstats(s).it;s.hist=[];s.yest=[];for(let h=0;h<24;h++){const f=.955+.045*Math.sin((h-8)/24*6.283);s.hist.push(Math.round(it*f*(1+(rnd()-.5)*.01)));s.yest.push(Math.round(it*f*.985*(1+(rnd()-.5)*.01)))}});
+
+/* servers via BMC (Redfish) — seeded per rack */
+const MODELS=['PowerEdge R760 2U','PowerEdge R660 1U','ProLiant DL380 Gen11 2U','ProLiant DL360 Gen11 1U','ThinkSystem SR650 V3 2U'];
+function servers(k){
+  if(k._srv)return k._srv; const g=hrnd(site().code+room().n+k.id); const out=[];
+  if(k.empty)return k._srv=out;
+  if(k.type==='gpu'){[0,1,2,3].forEach(i=>out.push({u:34-i*8,sz:6,m:'HGX H100 8-GPU 6U',w:0}));out.push({u:40,sz:1,m:'IB NDR Switch 1U',w:0},{u:41,sz:1,m:'Mgmt Switch 1U',w:0})}
+  else if(k.type==='net'){out.push({u:40,sz:2,m:'Spine Switch 2U',w:0},{u:37,sz:1,m:'Leaf Switch 1U',w:0},{u:36,sz:1,m:'Leaf Switch 1U',w:0},{u:33,sz:1,m:'Firewall 1U',w:0})}
+  else{let u=40;const n=Math.max(4,Math.min(18,Math.round(k.base/0.42)));for(let i=0;i<n&&u>2;i++){const m=MODELS[Math.floor(g()*MODELS.length)],sz=m.includes('2U')?2:1;u-=sz;out.push({u:u+1,sz,m,w:0});if(g()<.15)u--}
+    if(k.type==='hpc')out.forEach(s=>s.m=s.m.replace('PowerEdge R660 1U','PowerEdge XE8640 4U'))}
+  const wts=out.map(()=>.6+g()*.8), tot=wts.reduce((a,b)=>a+b,0);
+  out.forEach((s,i)=>s.share=wts[i]/tot*(.955+g()*.025));
+  return k._srv=out;
+}
+
+/* GEMS3700 metering: per room, channel = one rack feed */
+function meters(r){
+  if(r._m)return r._m; const ai=r.kind==='ai', per=ai?12:36, out=[];
+  ['A','B'].forEach(side=>{const ch=r.racks.map(k=>({k,side}));for(let i=0;i<ch.length;i+=per){const idx=out.length+1;
+    out.push({id:`GEMS-${r.n.replace('-','')}-${pad(idx)}`,model:'gems3736',mode:ai?L('3상 ×12','3-phase ×12'):L('단상 ×36','1-phase ×36'),panel:`PNL-${r.n.replace('-','')}-${side}${Math.floor(i/per)+1}`,
+      side,ch:ch.slice(i,i+per),ip:`10.20.${ri0(r)}.${10+idx}`,mainCT:ai?'NRC150-3000A':'NRC100-1000A',brCT:ai?'NS16-120A':'NS10-50A',fw:'v2.4.1',
+      status:(r.n==='N-2'&&idx===4)?'warn':'ok',leak:8+((idx*7)%14),seed:idx})}});
+  return r._m=out;
+}
+const ri0=r=>SITES.findIndex(s=>s.rooms.includes(r))*10+SITES.find(s=>s.rooms.includes(r)).rooms.indexOf(r)+1;
+const feedKW=(k,side)=>k.empty?0:k.kw*(side==='A'?k.split:1-k.split);
+const pfor=i=>'RST'[i%3];
+
+/* ---------- svg helpers ---------- */
+function spark(vals,w=120,h=32,col='var(--accent)'){const mx=Math.max(...vals),mn=Math.min(...vals),r=mx-mn||1;
+  const p=vals.map((v,i)=>`${(i*(w-4)/(vals.length-1)+2).toFixed(1)},${(h-3-(v-mn)/r*(h-8)).toFixed(1)}`);const lst=p[p.length-1].split(',');
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="2,${h} ${p.join(' ')} ${w-2},${h}" fill="${col}" fill-opacity=".12" stroke="none"/><polyline points="${p.join(' ')}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${lst[0]}" cy="${lst[1]}" r="2.6" fill="${col}"/></svg>`}
+function ring(p,size=64,col='var(--accent)',label=''){const r=size/2-6,c=2*Math.PI*r;return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${label} ${p.toFixed(0)}%" style="flex:none"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--panel-3)" stroke-width="7"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(c*Math.min(p,100)/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/><text x="50%" y="54%" text-anchor="middle" style="fill:var(--fg);font-size:${size>70?15:12}px;font-weight:600">${p.toFixed(0)}%</text></svg>`}
+function areaChart(vals,cmp,{w=720,h=220,unit='kW',xl=i=>pad(i)+':00',n=24,limit=null,limitLbl='',dec=0,step=null}={}){
+  const L0=52,R=14,T=16,B=26, all=[...vals,...(cmp||[]),...(limit?[limit]:[])], hi=Math.max(...all), lo=Math.min(...all);
+  const stp=step||(hi>400?50:hi>40?5:hi>4?1:.1), mx=Math.ceil(hi*1.06/stp)*stp, mn=Math.max(0,Math.floor((lo-(hi-lo)*.6)/stp)*stp);
+  const x=i=>L0+i*(w-L0-R)/(n-1), y=v=>T+(1-(v-mn)/((mx-mn)||1))*(h-T-B); let g='';
+  for(let s=0;s<=4;s++){const v=mn+(mx-mn)*s/4;g+=`<line x1="${L0}" x2="${w-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-dasharray="${s?'3 4':''}"/><text x="${L0-8}" y="${y(v)+4}" text-anchor="end">${fmt(v,dec)}</text>`}
+  for(let i=0;i<n;i+=Math.ceil(n/8))g+=`<text x="${x(i)}" y="${h-6}" text-anchor="middle">${xl(i)}</text>`;
+  if(limit)g+=`<line x1="${L0}" x2="${w-R}" y1="${y(limit)}" y2="${y(limit)}" stroke="var(--crit)" stroke-dasharray="6 4"/><text x="${w-R}" y="${y(limit)-6}" text-anchor="end" style="fill:var(--crit)">${limitLbl}</text>`;
+  if(cmp)g+=`<polyline points="${cmp.map((v,i)=>`${x(i)},${y(v)}`).join(' ')}" fill="none" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  const pts=vals.map((v,i)=>`${x(i)},${y(v)}`).join(' '), l=vals.length-1, id='ag'+Math.floor(Math.random()*1e6);
+  g+=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>`;
+  g+=`<polygon points="${x(0)},${y(mn)} ${pts} ${x(l)},${y(mn)}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"/>`;
+  g+=`<line x1="${x(l)}" x2="${x(l)}" y1="${T}" y2="${h-B}" stroke="var(--accent)" stroke-opacity=".35"/><circle cx="${x(l)}" cy="${y(vals[l])}" r="5" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`;
+  const far=x(l)>w-150, tx=far?x(l)-10:x(l)+10;
+  g+=`<text x="${tx}" y="${y(vals[l])-12}" text-anchor="${far?'end':'start'}" style="fill:var(--fg);font-size:13px;font-weight:600">${fmt(vals[l],dec)} ${unit}</text>`;
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="${L('추이 차트','Trend chart')}">${g}</svg>`}
+function donut(ent,cols,center1,center2,size=140){const tot=ent.reduce((a,b)=>a+b[1],0),R=size*.386,C=2*Math.PI*R,cx=size/2;let a0=0;
+  const arcs=ent.map(([n,v],i)=>{const f=v/tot,s=`<circle cx="${cx}" cy="${cx}" r="${R}" fill="none" stroke="${cols[i%cols.length]}" stroke-width="${size*.13}" stroke-dasharray="${Math.max(0,f*C-2).toFixed(1)} ${C.toFixed(1)}" stroke-dashoffset="${(-a0*C).toFixed(1)}" transform="rotate(-90 ${cx} ${cx})"/>`;a0+=f;return s}).join('');
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${center1}" style="flex:none">${arcs}<text x="${cx}" y="${cx-4}" text-anchor="middle">${center1}</text><text x="${cx}" y="${cx+16}" text-anchor="middle" style="fill:var(--fg);font-size:13px;font-weight:600">${center2}</text></svg>`}
+const legendList=(ent,cols,valf)=>`<div class="list" style="flex:1;min-width:0">${ent.map(([n,v],i)=>`<div class="row" style="justify-content:space-between;padding:3px 0;font-size:13px;flex-wrap:nowrap"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${cols[i%cols.length]};margin-right:6px"></i>${n}</span><span class="num">${valf(v)}</span></div>`).join('')}</div>`;
+const IS=26; const P=(x,y,z)=>[(x-y)*.866*IS,(x+y)*.5*IS-z*IS];
+function box(x,y,z,w,d,h,fill,attrs='',stroke=''){
+  const pts=a=>a.map(p=>P(...p).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const top=pts([[x,y,z+h],[x+w,y,z+h],[x+w,y+d,z+h],[x,y+d,z+h]]),rgt=pts([[x+w,y,z],[x+w,y+d,z],[x+w,y+d,z+h],[x+w,y,z+h]]),lft=pts([[x,y+d,z],[x+w,y+d,z],[x+w,y+d,z+h],[x,y+d,z+h]]);
+  const st=stroke?` stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round"`:'';
+  return `<g ${attrs}><polygon points="${lft}" fill="${fill}"/><polygon points="${lft}" fill="#000" fill-opacity=".30"/><polygon points="${rgt}" fill="${fill}"/><polygon points="${rgt}" fill="#000" fill-opacity=".16"/><polygon points="${top}" fill="${fill}"${st}/></g>`}
+function isoSvg(inner,pts,label){let a=1e9,b=1e9,c=-1e9,d=-1e9;pts.forEach(p=>{const[x,y]=P(...p);a=Math.min(a,x);c=Math.max(c,x);b=Math.min(b,y);d=Math.max(d,y)});const m=24;
+  return `<svg viewBox="${(a-m).toFixed(0)} ${(b-m).toFixed(0)} ${(c-a+2*m).toFixed(0)} ${(d-b+2*m).toFixed(0)}" class="chart" role="img" aria-label="${label}">${inner}</svg>`}
+const H=['--h0','--h1','--h2','--h3','--h4'];
+const utilBin=p=>p<30?0:p<50?1:p<70?2:p<85?3:4;
+const inBin=t=>t<20?0:t<23?1:t<25?2:t<27?3:4;
+const heat=k=>mode==='util'?utilBin(k.kw/k.cap*100):inBin(k.inlet);
+const sev=p=>p>=85?'crit':p>=70?'warn':'ok';
+const UTIL_LBL=['<30%','30–50%','50–70%','70–85%','≥85%'], IN_LBL=['<20℃','20–23℃','23–25℃','25–27℃',L('>27℃ (ASHRAE 초과)','>27℃ (above ASHRAE)')];
+
+/* ---------- events ---------- */
+const ST={open:L('발생','Open'),ack:L('인지','Acknowledged'),closed:L('종료','Closed')};
+let evId=2000; const events=[];
+const RULES=()=>[
+  ['Critical',L('랙','Rack'),r=>L(`${r} 전력 정격의 92%`,`${r} power at 92% of rating`),L('정격 대비 90% 초과','> 90% of rating'),'6.22 kW'],
+  ['Warning',L('랙','Rack'),r=>L(`${r} A피드 단독 부하 위험 (2N)`,`${r} feed A over 2N limit`),L('단일 피드가 정격의 50% 초과','single feed > 50% of rating'),'3.71 kW'],
+  ['Warning',L('전력품질','Power quality'),()=>L('PNL-N1-A1 전압 Sag 78% · 85 ms','PNL-N1-A1 voltage sag 78% · 85 ms'),L('Sag < 90% Un','Sag < 90% Un'),'78 %'],
+  ['Critical',L('전력품질','Power quality'),()=>L('PNL-N2-B1 전압 THD 5.4%','PNL-N2-B1 voltage THD 5.4%'),'THD > 5%','5.4 %'],
+  ['Fatal',L('계측기','Meter'),()=>L('GEMS-N2-04 통신 두절','GEMS-N2-04 communication lost'),L('폴링 3회 연속 실패','3 missed polls'),'timeout'],
+  ['Warning',L('환경','Environment'),r=>L(`${r} 흡기 28.1℃ (ASHRAE 27℃ 초과)`,`${r} inlet 28.1℃ (above ASHRAE 27℃)`),L('흡기 > 27 ℃','inlet > 27 ℃'),'28.1 ℃'],
+  ['Critical',L('분전반','Panel'),()=>L('PNL-N1-A2 누설전류 32 mA','PNL-N1-A2 leakage current 32 mA'),'> 30 mA','32 mA']];
+function newEvent(minsAgo){const m=pick(RULES()),rm=room(),r=pick(rm.racks.filter(k=>!k.empty)).id;
+  return {id:++evId,sev:m[0],kind:m[1],msg:m[2](r),rule:m[3],val:m[4],where:`${site().name} · ${rname(rm)}`,time:new Date(Date.now()-(minsAgo||0)*60000),state:'open'}}
+for(let i=0;i<14;i++)events.unshift(newEvent((14-i)*53));
+events.forEach((e,i)=>{if(i>3)e.state=i%3?'closed':'ack'});
+let selEv=events[0].id, evFilter='';
+
+/* ---------- other state ---------- */
+const TARGETS=[
+  {g:L('전력설비','Power'),name:'UPS #1',cyc:L('일일','Daily'),items:[[L('운전 상태','Operating status'),L('이상 유무','Normal / fault'),'yn'],[L('경보 램프','Alarm lamp'),L('OFF 정상','OFF = normal'),'onoff'],[L('입력 전압','Input voltage'),'370–400 V','num',370,400,'V'],[L('출력 부하율','Output load'),'≤ 80%','num',0,80,'%'],[L('배터리 온도','Battery temp'),'15–30 ℃','num',15,30,'℃']]},
+  {g:L('전력설비','Power'),name:L('분전반 PNL-N1-A1','Panel PNL-N1-A1'),cyc:L('월간','Monthly'),items:[[L('차단기 발열','Breaker heating'),L('이상 유무','Normal / fault'),'yn'],[L('단자 체결','Terminal torque'),L('이상 유무','Normal / fault'),'yn'],[L('R상 전류','Phase R current'),'≤ 150 A','num',0,150,'A'],[L('열화상 최고 온도','Thermal max temp'),'≤ 60 ℃','num',0,60,'℃']]},
+  {g:L('공조설비','Cooling'),name:'CRAC-03',cyc:L('주간','Weekly'),items:[[L('운전 상태','Operating status'),L('이상 유무','Normal / fault'),'yn'],[L('필터 오염','Filter condition'),L('이상 유무','Normal / fault'),'yn'],[L('토출 온도','Supply air temp'),'16–22 ℃','num',16,22,'℃'],[L('습도','Humidity'),'40–60 %RH','num',40,60,'%'],[L('누수 감지','Leak detection'),L('OFF 정상','OFF = normal'),'onoff']]},
+  {g:L('공조설비','Cooling'),name:L('CDU-1 (수랭)','CDU-1 (liquid)'),cyc:L('일일','Daily'),items:[[L('공급 냉각수 온도','Supply coolant temp'),'30–35 ℃','num',30,35,'℃'],[L('차압','Differential pressure'),'0.8–1.5 bar','num',.8,1.5,'bar'],[L('누수 감지','Leak detection'),L('OFF 정상','OFF = normal'),'onoff']]},
+  {g:L('소방·보안','Fire & security'),name:L('가스 소화설비','Gas suppression'),cyc:L('월간','Monthly'),items:[[L('약제 압력 게이지','Agent pressure gauge'),L('이상 유무','Normal / fault'),'yn'],[L('감지기 동작','Detector test'),L('이상 유무','Normal / fault'),'yn']]}
+];
+TARGETS.forEach(t=>t.items.forEach(it=>{if(it[2]==='num')it.push(+(it[3]+(it[4]-it[3])*(.35+rnd()*.35)).toFixed(1))}));
+let ti=0; const inspVals={}; const hist=[
+  {d:'2026-10-25 09:12',t:'UPS #1',c:L('일일','Daily'),who:L('김현장','J. Kim'),bad:0,n:5},{d:'2026-10-25 08:40',t:L('CDU-1 (수랭)','CDU-1 (liquid)'),c:L('일일','Daily'),who:L('김현장','J. Kim'),bad:0,n:3},
+  {d:'2026-10-23 14:40',t:'CRAC-03',c:L('주간','Weekly'),who:L('이설비','S. Lee'),bad:1,n:5},{d:'2026-10-01 10:20',t:L('분전반 PNL-N1-A1','Panel PNL-N1-A1'),c:L('월간','Monthly'),who:L('박전기','H. Park'),bad:0,n:4}];
+let rptTab='owner', rptCycle=L('주간','Weekly'), rptAuto=true; const reports=[
+  {n:L('춘천 각 · 주간 종합','Chuncheon GAK · Weekly summary'),p:'10/13 – 10/19',auto:true},{n:L('춘천 각 · ESG 월간 (9월)','Chuncheon GAK · ESG monthly (Sep)'),p:'2026-09',auto:true},{n:L('가산 · 고객별 전력 청구 (9월)','Gasan · Customer power billing (Sep)'),p:'2026-09',auto:false}];
+let ndcpAuto=true, ndcpReq=[{t:'10/25 08:40',m:L('출력전압 53.5 V 설정','Set output voltage 53.5 V'),s:'done'}];
+let mapSel='C-05', mapSaved='', wiN=4, wiK=35;
+
+/* ---------- navigation ---------- */
+const IC={
+ overview:'<rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/>',
+ campus:'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5"/>',
+ twin:'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M12 12l8-4M12 12v8M12 12L4 8"/>',
+ panel:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h6"/>',
+ rack:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M9 6h6M9 10h6M9 14h6M9 18h2"/>',
+ quality:'<path d="M2 12c2.5-7 5-7 7.5 0s5 7 7.5 0 3.5-5 5-3"/>',
+ meters:'<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-5"/><path d="M3 21h18"/>',
+ ndcp:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+ capacity:'<path d="M4 20V9M10 20V5M16 20v-8M22 20H2"/><path d="M3 6l6-3 6 4 6-3" stroke-dasharray="2 2"/>',
+ esg:'<path d="M5 19c0-9 6-14 15-14 0 9-6 14-15 14z"/><path d="M5 19l8-8"/>',
+ billing:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+ alarms:'<path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/>',
+ reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ inspect:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8l1.5 1.5L13 7M9 14h6M9 17h4"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'};
+const NAV=[
+ [L('모니터링','Monitoring'),[['overview',L('통합 대시보드','Overview')],['campus',L('캠퍼스 뷰','Campus view')],['twin',L('디지털 트윈','Digital twin')]]],
+ [L('전력·설비','Power & facility'),[['panel',L('분전반 회로','Panel circuits')],['rack',L('랙·서버 전력','Rack & server power')],['quality',L('전력품질','Power quality'),1],['meters',L('계측기 (GEMS)','Meters (GEMS)'),1],['ndcp',L('NDCP·DC 전원','NDCP · DC power')]]],
+ [L('용량·ESG','Capacity & ESG'),[['capacity',L('용량 계획','Capacity planning'),1],['esg',L('PUE·탄소','PUE & carbon'),1],['billing',L('고객별 전력 청구','Tenant billing'),1]]],
+ [L('운영','Operations'),[['alarms',L('경보 센터','Alarm center')],['reports',L('분석·리포트','Analytics')],['inspect',L('점검관리','Inspections')]]],
+ [L('설정','Settings'),[['settings',L('맵·연동 설정','Maps & integrations')]]]];
+const META={};NAV.forEach(([g,items])=>items.forEach(([k,l])=>META[k]=[g,l]));
+$('#rail').innerHTML=`<div class="brand"><span class="mk">xI</span><div><b>xIDC FMS</b><small>${L('전력·환경 관제','Power & environment')}</small></div></div>`+
+  NAV.map(([g,items])=>`<div class="grp">${g}</div>`+items.map(([k,l,n])=>`<button data-v="${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${IC[k]}</svg>${l}${n?'<span class="new">NEW</span>':''}</button>`).join('')).join('')+
+  `<div class="foot">${L('데모 데이터 · 실측 규모 시뮬레이션','Demo data · real-scale simulation')}</div>`;
+$('#live').innerHTML=`<i></i>${L('실시간 · 1초 수집 · 4초 갱신','Live · 1 s polling · 4 s refresh')}`;
+$('#langBtn').textContent=EN?'한국어':'EN';$('#langBtn').setAttribute('aria-label',L('영어로 보기','View in Korean'));
+$('#themeBtn').setAttribute('aria-label',L('화면 테마 전환','Toggle theme'));$('#bell').setAttribute('aria-label',L('미처리 경보','Open alarms'));
+$('#toastH').textContent=L('경보 발생','New alarm');$('#toastAck').textContent=L('인지','Acknowledge');$('#toastGo').textContent=L('경보 센터','Alarm center');
+
+/* ================= VIEWS ================= */
+function vOverview(){
+  const s=site(), S=sstats(s), h=now().getHours(), today=s.hist.slice(0,h+1).reduce((a,b)=>a+b,0)*S.pue/1000, yday=s.yest.slice(0,h+1).reduce((a,b)=>a+b,0)*S.pue/1000;
+  const it=S.it, fac=S.fac, sp=n=>s.hist.slice(Math.max(0,h-n),h+1);
+  const K=[[L('IT 부하','IT load'),kfmt(it).split(' '),sp(12),L(`설계 ${kfmt(S.design)} 대비 ${(it/S.design*100).toFixed(1)}%`,`${(it/S.design*100).toFixed(1)}% of ${kfmt(S.design)} design`)],
+    [L('시설 전체 전력','Facility power'),kfmt(fac).split(' '),sp(12).map(v=>v*S.pue),L('IT + 냉방 + UPS 손실 + 기타','IT + cooling + UPS loss + other')],
+    ['PUE',[S.pue.toFixed(2),''],[1.36,1.35,1.35,1.34,1.34,S.pue],L('실시간 · 목표 1.30','Live · target 1.30')],
+    [L('금일 전력량','Energy today'),[fmt(today,1),'MWh'],sp(12),L(`${((today/yday-1)*100).toFixed(1)}% 전일 동시간`,`${((today/yday-1)*100).toFixed(1)}% vs same hour yesterday`)],
+    [L('계측 회로','Metered circuits'),[fmt(s.rooms.reduce((a,r)=>a+meters(r).reduce((b,m)=>b+m.ch.length,0),0)),L('채널','ch')],[1,1,1,1,1,1],L(`GEMS3700 ${s.rooms.reduce((a,r)=>a+meters(r).length,0)}대 · Class 0.2S`,`${s.rooms.reduce((a,r)=>a+meters(r).length,0)} × GEMS3700 · Class 0.2S`)],
+    [L('금일 탄소','Carbon today'),[fmt(today*.4594,1),'tCO2e'],sp(12),L('배출계수 0.4594 · 사이트별 설정','Factor 0.4594 · set per site')]];
+  const kpis=K.map(k=>`<div class="card kpi c2"><div class="l">${k[0]}</div><div class="v">${k[1][0]}<small>${k[1][1]}</small></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="d sub" style="font-family:var(--ui)">${k[3]}</span>${spark(k[2],64,24)}</div></div>`).join('');
+  const rooms=S.rs.map((x,i)=>`<div class="bar"><span>${rname(s.rooms[i])}</span><span class="t"><i style="width:${Math.min(100,x.pct)}%;background:var(--${x.pct>80?'crit':x.pct>70?'warn':'ok'})"></i></span><span class="n">${kfmt(x.used)}</span></div>`).join('');
+  const by={};s.rooms.forEach(r=>r.racks.forEach(k=>{if(!k.empty)by[k.owner]=(by[k.owner]||0)+k.kw}));
+  const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,7), cols=['var(--accent)','var(--accent-2)','var(--h1)','var(--h2)','var(--h3)','var(--h4)','var(--faint)'];
+  const r0=s.rooms[0], hk=r0.racks.find(k=>k.id==='C-07')||r0.racks[20];
+  const lr=s.rooms[s.rooms.length-1], lx=rstats(lr), lg=lr.kind==='ai'?.06:.022; let run=0,lv=lx.used; while(lv<lr.design*.8&&run<60){lv*=1+lg;run++}
+  const ins=[['!','crit',L(`${rname(r0)} ${hk.id} 전력이 7일 기준선 대비 +38% (02:00 이후)`,`${rname(r0)} ${hk.id} power +38% vs 7-day baseline since 02:00`),L('이상 탐지 · 워크로드 변경 확인','Anomaly · check workload change')],
+    ['↗','warn',L(`${rname(lr)} ${run}개월 후 설계 전력 80% 도달 예상`,`${rname(lr)} forecast to hit 80% of design in ${run} months`),L('용량 예측 · 증설 검토','Forecast · plan expansion')],
+    ['℃','warn',L('CRAC-03 토출 온도 주당 +1.2℃ 상승 추세','CRAC-03 supply air drifting +1.2℃ per week'),L('예지 정비 · 필터 점검 예약','Predictive · schedule filter check')],
+    ['kW','info',L(`${rname(s.rooms[Math.min(1,s.rooms.length-1)])} 랙 12대가 할당 전력의 25% 미만 · 41 kW 유휴`,`12 racks in ${rname(s.rooms[Math.min(1,s.rooms.length-1)])} below 25% of allocation · 41 kW stranded`),L('유휴 용량 · 재배치 후보','Stranded capacity · re-use candidate')]]
+    .map(x=>`<div class="ins"><span class="ic" style="background:var(--${x[1]}-soft);color:var(--${x[1]==='info'?'accent-2':x[1]})">${x[0]}</span><span><b>${x[2]}</b><span class="sub" style="display:block">${x[3]}</span></span></div>`).join('');
+  const recent=events.filter(e=>e.state!=='closed').slice(0,4).map(e=>`<div class="li"><span class="pill sev-${e.sev}">${e.sev}</span><span class="grow"><b>${esc(e.msg)}</b><span class="sub">${e.where}</span></span><span class="sub num">${hm(e.time)}</span></div>`).join('')||`<div class="empty">${L('미처리 경보가 없습니다','No open alarms')}</div>`;
+  return kpis+`
+  <div class="card c8"><div class="ch"><h3>${L('시간대별 IT 부하 (kW)','Hourly IT load (kW)')}</h3><span class="legend"><span><i style="background:var(--accent)"></i>${L('오늘','Today')}</span><span><i style="background:var(--faint)"></i>${L('어제','Yesterday')}</span></span></div>${areaChart(s.hist.slice(0,h+1),s.yest)}</div>
+  <div class="card c4"><div class="ch"><h3>${L('서비스·고객별 IT 전력','IT power by service / tenant')}</h3><span class="sub">${L('실시간','Live')}</span></div>
+    <div class="row" style="flex-wrap:nowrap;gap:14px">${donut(ent,cols,L('합계','Total'),kfmt(it))}${legendList(ent,cols,v=>kfmt(v))}</div></div>
+  <div class="card c4"><div class="ch"><h3>${L('서버룸별 IT 부하','IT load by room')}</h3><span class="sub">${L('막대 = 설계 전력 대비','bar = vs design power')}</span></div><div class="bars">${rooms}</div></div>
+  <div class="card c4"><div class="ch"><h3>${L('AI 인사이트','AI insights')}</h3><span class="pill s-info">${L('자동 분석','Auto analysis')}</span></div><div>${ins}</div></div>
+  <div class="card c4"><div class="ch"><h3>${L('미처리 경보','Open alarms')}</h3><button class="btn sm" data-go="alarms">${L('경보 센터','Alarm center')}</button></div><div class="list">${recent}</div></div>`;
+}
+
+function vCampus(){
+  const s=site(); const floors=[...new Set(s.rooms.map(r=>r.fl))]; let inner='',pts=[];
+  floors.forEach(f=>{const o=f*13.5; inner+=box(o,0,0,11,7,.35,'var(--slab)'); pts.push([o,0,0],[o+11,7,0],[o+11,0,2.6],[o,7,0],[o+11,8.6,0]);
+    const rs=s.rooms.map((r,i)=>[r,i]).filter(([r])=>r.fl===f);
+    rs.forEach(([r,i],k)=>{const x0=rstats(r),x=o+.8+k*(10/rs.length),w=10/rs.length-.8,hh=.35+x0.pct/100*1.4;
+      inner+=box(x,.9,.35,w,5.2,hh,`var(${H[utilBin(x0.pct)]})`,`class="hit" data-room="${i}" tabindex="0" role="button" aria-label="${rname(r)} ${kfmt(x0.used)}"`,i===ri?'var(--fg)':'');
+      const [lx,ly]=P(x+w/2,3.5,.35+hh+.3); inner+=`<text x="${lx.toFixed(0)}" y="${ly.toFixed(0)}" text-anchor="middle" class="lbl" style="pointer-events:none">${r.n} · ${kfmt(x0.used)}</text>`});
+    const [fx,fy]=P(o+5.5,8.4,0); inner+=`<text x="${fx.toFixed(0)}" y="${(fy+6).toFixed(0)}" text-anchor="middle" class="lbl" style="font-size:14px">${s.rooms.find(r=>r.fl===f).f}</text>`});
+  const x=rstats(room());
+  const list=s.rooms.map((r,i)=>{const y=rstats(r);return `<button class="li" data-room="${i}" style="background:${i===ri?'var(--panel-2)':'none'};border:0;border-bottom:1px solid var(--line);width:100%;text-align:left;cursor:pointer;border-radius:8px">${ring(y.pct,46,`var(${H[utilBin(y.pct)]})`,rname(r))}<span class="grow"><b>${rname(r)} <span class="sub" style="display:inline">${r.kind==='ai'?L('· AI 수랭 홀','· AI liquid-cooled hall'):r.kind==='colo'?L('· 코로케이션','· Colocation'):''}</span></b><span class="sub">${kfmt(y.used)} / ${kfmt(r.design)} · ${L('랙','racks')} ${y.live} · ${L('흡기 최고','inlet max')} ${y.inMax.toFixed(1)}℃</span></span></button>`}).join('');
+  return `<div class="card c8"><div class="ch"><h3>${s.name} ${L('센터 층별 조감도','site · rooms by floor')}</h3><span class="legend">${['<30%','30–50%','50–70%','70–85%','≥85%'].map((t,i)=>`<span><i style="background:var(${H[i]})"></i>${t}</span>`).join('')}</span></div>
+    ${isoSvg(inner,pts,L('층별 서버룸 조감도','Server rooms by floor'))}<div class="sub">${L('블록 높이와 색 = 설계 전력 대비 실사용 IT 전력 · 서버룸을 누르면 요약이 열립니다','Block height and color = measured IT power vs design · select a room for its summary')}</div></div>
+  <div class="card c4"><div class="ch"><h3>${L('서버룸','Server rooms')}</h3><span class="sub">${s.rooms.length}</span></div><div class="list">${list}</div>
+    <div class="stats"><div class="stat"><span class="l">${L('IT 부하','IT load')}</span><span class="v">${kfmt(x.used)}</span></div><div class="stat"><span class="l">${L('설계 전력','Design power')}</span><span class="v">${kfmt(x.design)}</span></div><div class="stat"><span class="l">${L('냉방 용량','Cooling capacity')}</span><span class="v">${kfmt(x.cool)}</span></div><div class="stat"><span class="l">${L('랙당 평균','Avg per rack')}</span><span class="v">${x.avg.toFixed(1)} kW</span></div></div>
+    <button class="btn acc" data-go="twin">${L(`${rname(room())} 디지털 트윈 열기`,`Open ${rname(room())} digital twin`)}</button></div>`;
+}
+
+function vTwin(){
+  const r=room(), s=rstats(r), rows=ROWL.slice(0,r.rows).split(''), mxCap=Math.max(...r.racks.map(k=>k.cap));
+  const XW=r.cols*1.3+.6, YD=rows.length*1.9+2.6; let inner='',pts=[[-2,-1,0],[XW,-1,0],[XW,YD,0],[-2,YD,0],[-2,-1,4.4],[XW,-1,4.4]];
+  inner+=box(-.6,-.6,-.25,r.cols*1.3+.6,rows.length*1.9+1.4,.25,'var(--slab)');
+  [...r.racks].sort((a,b)=>(a.col+ROWL.indexOf(a.row)*1.4)-(b.col+ROWL.indexOf(b.row)*1.4)).forEach(k=>{const i2=ROWL.indexOf(k.row),x=(k.col-1)*1.3,y=i2*1.9+Math.floor(i2/2)*.5;
+    if(k.empty){inner+=box(x,y,0,1,1.15,.06,'var(--panel-3)');return}
+    const h=.5+k.kw/mxCap*3.4;
+    inner+=box(x,y,0,1,1.15,h,`var(${H[heat(k)]})`,`class="hit" data-rack="${k.id}" tabindex="0" role="button" aria-label="${k.id} ${k.kw.toFixed(1)} kW"`,k.id===selRack?'var(--fg)':'')});
+  rows.forEach((x,i)=>{const[lx,ly]=P(-1.1,i*1.9+Math.floor(i/2)*.5+.6,0);inner+=`<text x="${lx.toFixed(0)}" y="${ly.toFixed(0)}" text-anchor="end" class="lbl">${x}</text>`});
+  const k=r.racks.find(x=>x.id===selRack&&!x.empty)||r.racks.find(x=>!x.empty), p=k.kw/k.cap*100;
+  const sums=mode==='util'?[[L('IT 부하','IT load'),kfmt(s.used)],[L('설계 대비','vs design'),s.pct.toFixed(1)+' %'],[L('랙당 평균','Avg / rack'),s.avg.toFixed(1)+' kW'],[L('최대 랙','Max rack'),s.max.toFixed(1)+' kW']]
+    :[[L('흡기 평균','Inlet avg'),s.inAvg.toFixed(1)+' ℃'],[L('흡기 최고','Inlet max'),s.inMax.toFixed(1)+' ℃'],[L('배기 평균','Exhaust avg'),s.outAvg.toFixed(1)+' ℃'],[L('ASHRAE 초과','Above ASHRAE'),s.hot+L(' 대',' racks')]];
+  const lab=mode==='util'?UTIL_LBL:IN_LBL;
+  return `<div class="card c9"><div class="ch"><div><h3>${rname(r)} · ${L('랙','racks')} ${s.live} · ${kfmt(s.used)}</h3><span class="sub">${L('높이 = 실사용 kW · 색 = ','height = measured kW · color = ')}${mode==='util'?L('정격 대비 사용률','use vs rating'):L('흡기 온도 (ASHRAE 권장 18–27℃)','inlet temp (ASHRAE 18–27℃)')}</span></div>
+    <div class="row"><select class="f" id="roomSel" aria-label="${L('서버룸','Server room')}">${site().rooms.map((x,i)=>`<option value="${i}" ${i===ri?'selected':''}>${rname(x)}</option>`).join('')}</select>
+    <div class="chips" role="group"><button data-mode="util" aria-pressed="${mode==='util'}">${L('전력','Power')}</button><button data-mode="inlet" aria-pressed="${mode==='inlet'}">${L('흡기 온도','Inlet temp')}</button></div></div></div>
+    ${isoSvg(inner,pts,L('랙 디지털 트윈','Rack digital twin'))}
+    <div class="row" style="justify-content:space-between"><span class="legend">${lab.map((t,i)=>`<span><i style="background:var(${H[i]})"></i>${t}</span>`).join('')}</span><span class="stats" style="flex:1;max-width:640px">${sums.map(x=>`<span class="stat"><span class="l">${x[0]}</span><span class="v">${x[1]}</span></span>`).join('')}</span></div></div>
+  <div class="card c3"><div class="ch"><div><h3 class="num" style="font-size:20px">${k.id}</h3><span class="sub">${TYPES[k.type].lbl} · ${k.owner}</span></div><span class="pill s-${sev(p)}">${p>=85?L('임계','Critical'):p>=70?L('주의','Watch'):L('정상','Normal')}</span></div>
+    <div class="row" style="justify-content:space-around;flex-wrap:nowrap">${ring(p,84,`var(--${sev(p)})`,'kW')}<div><div class="sub">${L('실사용 / 정격','Measured / rating')}</div><div class="num" style="font-size:20px;font-weight:600">${k.kw.toFixed(2)}<span class="sub"> / ${k.cap} kW</span></div><div class="sub" style="margin-top:6px">${k.ph===1?L('단상 220 V','1-phase 220 V'):L('3상 380 V','3-phase 380 V')} · ${k.brk} A</div></div></div>
+    <div class="stats"><div class="stat"><span class="l">${L('A 피드','Feed A')}</span><span class="v">${feedKW(k,'A').toFixed(2)} kW</span></div><div class="stat"><span class="l">${L('B 피드','Feed B')}</span><span class="v">${feedKW(k,'B').toFixed(2)} kW</span></div><div class="stat"><span class="l">${L('흡기','Inlet')}</span><span class="v">${k.inlet.toFixed(1)}℃</span></div><div class="stat"><span class="l">${L('배기','Exhaust')}</span><span class="v">${(k.inlet+outDT(k)).toFixed(1)}℃</span></div></div>
+    <div><div class="sub">${L('최근 12시간 kW','kW, last 12 h')}</div>${spark(Array.from({length:12},(_,i)=>k.base*(1+Math.sin(i+k.col)*.05)+(i===11?k.kw-k.base:0)),260,54)}</div>
+    <button class="btn" data-go="rack">${L('랙·서버 전력 보기','View rack & server power')}</button></div>`;
+}
+
+function curMeter(){const ms=meters(room());if(selMeter>=ms.length)selMeter=0;return ms[selMeter]}
+function circuits(m){const ai=room().kind==='ai';if(!m._ph){const t={R:0,S:0,T:0};m._ph=m.ch.map(c=>{const p=Object.keys(t).sort((x,y)=>t[x]-t[y])[0];t[p]+=c.k.empty?0:c.k.base;return p})}
+  return m.ch.map((c,i)=>{const kw=feedKW(c.k,c.side),ph=ai?'3P':m._ph[i];return {no:i+1,ph,kw,a:amps(kw,ai?3:1),brk:ai?63:32,k:c.k,side:c.side}})}
+const meterSel=()=>`<select class="f" id="meterSel" aria-label="${L('분전반·계측기','Panel / meter')}">${meters(room()).map((m,i)=>`<option value="${i}" ${i===selMeter?'selected':''}>${m.panel} · ${m.id}</option>`).join('')}</select>`;
+function vPanel(){
+  const m=curMeter(), cs=circuits(m), ai=room().kind==='ai'; const tot={R:0,S:0,T:0};
+  cs.forEach(c=>{if(c.ph==='3P'){tot.R+=c.kw/3;tot.S+=c.kw/3;tot.T+=c.kw/3}else tot[c.ph]+=c.kw});
+  const all=tot.R+tot.S+tot.T, avg=all/3, imb=(Math.max(tot.R,tot.S,tot.T)-Math.min(tot.R,tot.S,tot.T))/avg*100, mx=Math.max(tot.R,tot.S,tot.T)*1.15;
+  const brk=c=>{const pc=c.a/c.brk*100,col=pc>=80?'var(--crit)':pc>=60?'var(--warn)':'var(--ok)';return `<button class="brk" data-circ="${c.no}" aria-pressed="${c.no===selCirc}" aria-label="${L('회로','Circuit')} ${c.no} ${c.kw.toFixed(2)} kW"><span class="no">${pad(c.no)}</span><span class="ph ph-${c.ph}">${c.ph}</span><span class="ld"><i style="width:${Math.min(100,pc)}%;background:${col}"></i></span><span class="a">${c.k.empty?'—':c.kw.toFixed(2)}</span><span class="a sub">${c.k.empty?'':c.a.toFixed(1)+'A'}</span></button>`};
+  const ncol=ai?2:3, per=Math.ceil(cs.length/ncol); let colsH='';for(let i=0;i<ncol;i++)colsH+=`<div style="display:flex;flex-direction:column;gap:4px">${cs.slice(i*per,(i+1)*per).map(brk).join('')}</div>`;
+  const sel=cs.find(c=>c.no===selCirc)||cs[0];
+  const phBars=['R','S','T'].map((p,i)=>{const hgt=tot[p]/mx*120;return `<g><rect x="${30+i*70}" y="${140-hgt}" width="40" height="${hgt}" rx="6" fill="var(--p${p.toLowerCase()})"/><text x="${50+i*70}" y="${134-hgt}" text-anchor="middle" style="fill:var(--fg);font-weight:600">${tot[p].toFixed(1)}</text><text x="${50+i*70}" y="158" text-anchor="middle">${p} kW</text></g>`}).join('');
+  return `<div class="card c8"><div class="ch"><div><h3>${m.panel} · ${L('계측','metered by')} ${m.id} (gems3736 ${m.mode})</h3><span class="sub">${L('막대 = 차단기 용량 대비 전류 · 값 = 실사용 kW / A · 회로를 누르면 매핑이 열립니다','bar = current vs breaker · values = measured kW / A · select a circuit for mapping')}</span></div>${meterSel()}</div>
+    <div class="board"><div class="mainbrk"><div><b>${L('메인 차단기','Main breaker')}</b> <span class="sub">${ai?'ACB 2000A':'MCCB 400A'} · ${L('3상 4선 380/220 V · 메인 CT','3-phase 4-wire 380/220 V · main CT')} ${m.mainCT}</span></div><span class="num" style="font-weight:600">${fmt(all,1)} kW · ${fmt(amps(all,3),0)} A · PF ${(.955+((m.seed*3)%3)/100).toFixed(2)} · ${L('누설','leakage')} ${m.leak} mA</span></div>
+    <div class="cols ${ai?'':'cols3'}">${colsH}</div></div></div>
+  <div class="card c4"><div class="ch"><h3>${L('상별 부하 균형','Phase balance')}</h3><span class="pill s-${imb>15?'warn':'ok'}">${L('불평형','Imbalance')} ${imb.toFixed(1)}%</span></div>
+    <svg viewBox="0 0 250 166" class="chart" role="img" aria-label="${L('상별 전력','Power per phase')}">${phBars}<line x1="16" x2="236" y1="${140-avg/mx*120}" y2="${140-avg/mx*120}" stroke="var(--faint)" stroke-dasharray="4 4"/></svg>
+    <div class="ch"><h3>${L('회로','Circuit')} ${pad(sel.no)}</h3><span class="ph ph-${sel.ph}">${sel.ph}</span></div>
+    <div class="stats"><div class="stat"><span class="l">${L('매핑 랙 · 피드','Rack · feed')}</span><span class="v">${sel.k.empty?L('예비','Spare'):sel.k.id+' · '+sel.side}</span></div><div class="stat"><span class="l">${L('실사용 전력','Measured power')}</span><span class="v">${sel.kw.toFixed(2)} kW</span></div><div class="stat"><span class="l">${L('전류 / 차단기','Current / breaker')}</span><span class="v">${sel.a.toFixed(1)} / ${sel.brk} A</span></div><div class="stat"><span class="l">${L('분기 CT','Branch CT')}</span><span class="v" style="font-size:13px">${m.brCT}</span></div></div>
+    <div><div class="sub">${L('최근 12시간 kW','kW, last 12 h')}</div>${spark(Array.from({length:12},(_,i)=>sel.kw*(1+Math.sin(i*.8+sel.no)*.06)),280,50,'var(--accent-2)')}</div></div>`;
+}
+
+function vRack(){
+  const r=room(), k=r.racks.find(x=>x.id===selRack&&!x.empty)||r.racks.find(x=>!x.empty), p=k.kw/k.cap*100, srv=servers(k);
+  const bmc=srv.reduce((a,s)=>a+s.share*k.kw,0);
+  const byU={};srv.forEach(s=>byU[s.u]=s);let rows='',u=42;
+  while(u>=1&&u>42-21){const s=byU[u];if(s){rows+=`<div class="u"><span class="n">${pad(u)}</span><span class="dev" style="height:${s.sz*14+(s.sz-1)*2}px"><span style="overflow:hidden;text-overflow:ellipsis">${s.m.replace(/ \dU$/,'')}</span><b>${fmt(s.share*k.kw*1000)} W</b></span></div>`;u-=s.sz}else{rows+=`<div class="u"><span class="n">${pad(u)}</span><span class="slot"></span></div>`;u--}}
+  const fa=feedKW(k,'A'), fb=feedKW(k,'B'), fail=k.kw/k.cap*100;
+  const series=Array.from({length:48},(_,i)=>k.base*(1+Math.sin(i/7.6)*.06+Math.sin(i*1.7)*.015)); series[47]=k.kw;
+  const log=events.slice(0,3).map(e=>`<div class="li"><span class="pill sev-${e.sev}">${e.sev}</span><span class="grow"><b>${esc(e.msg.replace(/[A-H]-\d\d/,k.id))}</b><span class="sub">${e.rule}</span></span><span class="pill st-${e.state}">${ST[e.state]}</span></div>`).join('');
+  return `<div class="card c3"><div class="ch"><h3>${L('랙 실장도 · 서버별 전력','Rack elevation · server power')}</h3><select class="f" id="rackSel" aria-label="${L('랙 선택','Select rack')}">${r.racks.filter(x=>!x.empty).map(x=>`<option ${x.id===k.id?'selected':''}>${x.id}</option>`).join('')}</select></div>
+    <div class="elev">${rows}<div class="sub" style="text-align:center;padding-top:4px">${L('상단 21U 표시 · 서버 전력 = BMC(Redfish)','Top 21U shown · server watts from BMC (Redfish)')}</div></div></div>
+  <div class="c9" style="display:grid;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr));align-content:start">
+    <div class="card c12"><div class="ch"><h3 class="num" style="font-size:20px">${k.id} <span class="sub" style="font-family:var(--ui)">${TYPES[k.type].lbl} · ${k.owner} · ${rname(r)}</span></h3><span class="pill s-${sev(p)}">${p>=85?L('임계','Critical'):p>=70?L('주의','Watch'):L('정상','Normal')}</span></div>
+      <div class="row" style="gap:22px;justify-content:space-between">
+        <div class="row" style="gap:12px;flex-wrap:nowrap">${ring(fa/k.cap*100,72,'var(--accent)',L('A 피드','Feed A'))}<div><div class="sub">${L('A 피드 (GEMS)','Feed A (GEMS)')}</div><div class="num" style="font-size:19px;font-weight:600">${fa.toFixed(2)} kW</div><div class="sub num">${amps(fa,k.ph).toFixed(1)} A / ${k.brk} A</div></div></div>
+        <div class="row" style="gap:12px;flex-wrap:nowrap">${ring(fb/k.cap*100,72,'var(--accent-2)',L('B 피드','Feed B'))}<div><div class="sub">${L('B 피드 (GEMS)','Feed B (GEMS)')}</div><div class="num" style="font-size:19px;font-weight:600">${fb.toFixed(2)} kW</div><div class="sub num">${amps(fb,k.ph).toFixed(1)} A / ${k.brk} A</div></div></div>
+        <div class="stats" style="flex:1;min-width:300px"><div class="stat"><span class="l">${L('랙 합계 (계량)','Rack total (metered)')}</span><span class="v">${k.kw.toFixed(2)} kW</span></div><div class="stat"><span class="l">${L('서버 합계 (BMC)','Servers (BMC)')}</span><span class="v">${bmc.toFixed(2)} kW</span></div><div class="stat"><span class="l">${L('차이 (팬·PDU 손실)','Gap (fans · PDU)')}</span><span class="v">${((k.kw-bmc)/k.kw*100).toFixed(1)}%</span></div></div></div>
+      <div class="row" style="justify-content:space-between;background:var(--${fail>=80?'warn':'ok'}-soft);border-radius:10px;padding:10px 14px"><span><b>${L('2N 페일오버 점검','2N failover check')}</b> <span class="sub">${L(`B 피드 장애 시 A 피드가 ${k.kw.toFixed(2)} kW 단독 부담 = 차단기 정격의 ${fail.toFixed(0)}%`,`If feed B fails, feed A carries ${k.kw.toFixed(2)} kW = ${fail.toFixed(0)}% of breaker rating`)}</span></span><span class="pill s-${fail>=80?'warn':'ok'}">${fail>=80?L('위험 · 부하 조정 필요','At risk · rebalance'):L('여유 있음','Safe')}</span></div></div>
+    <div class="card c8"><div class="ch"><h3>${L('랙 전력 추이 (kW)','Rack power trend (kW)')}</h3><div class="chips" role="group"><button aria-pressed="true">24h</button><button aria-pressed="false">7d</button><button aria-pressed="false">30d</button></div></div>
+      ${areaChart(series,null,{w:640,h:190,unit:'kW',n:48,xl:i=>pad(Math.floor(i/2))+':00',dec:1,limit:k.cap*.8,limitLbl:L('정격 80%','80% of rating')})}</div>
+    <div class="card c4"><div class="ch"><h3>${L('이벤트 로그','Event log')}</h3></div><div class="list">${log}</div></div></div>`;
+}
+
+function vQuality(){
+  const m=curMeter(), g=hrnd(m.id), vt=[2.1+g(),2.4+g(),2.2+g()], tdd=6+g()*6, vu=.3+g()*.4, iu=3+g()*5, fq=59.97+g()*.05, kf=1.6+g()*.8, cf=1.45+g()*.25;
+  const tiles=[[L('전압 THD (최대상)','Voltage THD (max)'),Math.max(...vt).toFixed(2)+' %','EN50160 ≤ 8%'],[L('전류 TDD','Current TDD'),tdd.toFixed(1)+' %','IEEE 519'],[L('전압 불평형','Voltage unbalance'),vu.toFixed(2)+' %','≤ 2%'],[L('전류 불평형','Current unbalance'),iu.toFixed(1)+' %',''],[L('주파수','Frequency'),fq.toFixed(2)+' Hz','60 Hz'],['K-factor · CF',kf.toFixed(2)+' · '+cf.toFixed(2),L('변압기 열화 지표','transformer derating')]]
+    .map(t=>`<div class="card kpi c2"><div class="l">${t[0]}</div><div class="v" style="font-size:22px">${t[1]}</div><div class="d sub">${t[2]}</div></div>`).join('');
+  // waveform
+  const W=560,Hh=170,x=t=>20+t*(W-30),y=v=>Hh/2-v*62;let wv='';
+  [['--pr',0],['--ps',-2.094],['--pt',2.094]].forEach(([c,ph])=>{let d='';for(let i=0;i<=200;i++){const t=i/200,a=t*2*2*Math.PI+ph;d+=(i?'L':'M')+x(t).toFixed(1)+','+y(Math.sin(a)+.025*Math.sin(5*a)).toFixed(1)}wv+=`<path d="${d}" fill="none" stroke="var(${c})" stroke-width="2"/>`});
+  let di='';for(let i=0;i<=200;i++){const t=i/200,a=t*4*Math.PI;di+=(i?'L':'M')+x(t).toFixed(1)+','+y(.62*(Math.sin(a)+.18*Math.sin(5*a)+.09*Math.sin(7*a))).toFixed(1)}
+  wv+=`<path d="${di}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 3"/><line x1="20" x2="${W-10}" y1="${Hh/2}" y2="${Hh/2}" stroke="var(--line)"/>`;
+  // harmonics
+  const hv=o=>o===3?4.1:o===5?6.8:o===7?3.9:o===9?1.3:o===11?2.6:o===13?1.9:o%2?Math.max(.15,1.6-o*.05):.12;const HW=560,HH=170;let hb='';
+  for(let o=2;o<=31;o++){const v=hv(o)*(.9+g()*.2),bw=(HW-50)/30,hx=40+(o-2)*bw,hh=v/8*(HH-40);hb+=`<rect x="${hx.toFixed(1)}" y="${(HH-24-hh).toFixed(1)}" width="${(bw-3).toFixed(1)}" height="${hh.toFixed(1)}" rx="2" fill="var(${o%2?'--accent-2':'--faint'})"/>`;if(o%2&&o<=15||o===21||o===31)hb+=`<text x="${(hx+bw/2).toFixed(1)}" y="${HH-8}" text-anchor="middle">${o}</text>`}
+  [0,2,4,6,8].forEach(v=>{const yy=HH-24-v/8*(HH-40);hb+=`<line x1="36" x2="${HW-8}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="30" y="${yy+4}" text-anchor="end">${v}%</text>`});
+  // ITIC
+  const IW=560,IH=230,lx=t=>50+(Math.log10(t)+4)/6*(IW-64),ly=v=>14+(1-v/200)*(IH-44);
+  const up=[[1e-4,200],[1e-3,200],[1e-3,140],[3e-3,140],[3e-3,120],[.5,120],[.5,110],[100,110]], lo=[[1e-4,0],[.02,0],[.02,70],[.5,70],[.5,80],[10,80],[10,90],[100,90]];
+  const pl=a=>a.map(([t,v])=>`${lx(t).toFixed(1)},${ly(v).toFixed(1)}`).join(' ');
+  let it=`<polygon points="${pl(up)} ${pl([...lo].reverse())}" fill="var(--ok)" fill-opacity=".10"/><polyline points="${pl(up)}" fill="none" stroke="var(--ok)" stroke-width="2"/><polyline points="${pl(lo)}" fill="none" stroke="var(--ok)" stroke-width="2"/>`;
+  [[1e-4,'0.1ms'],[1e-3,'1ms'],[.01,'10ms'],[.1,'0.1s'],[1,'1s'],[10,'10s'],[100,'100s']].forEach(([t,l])=>it+=`<line x1="${lx(t)}" x2="${lx(t)}" y1="14" y2="${IH-30}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${lx(t)}" y="${IH-12}" text-anchor="middle">${l}</text>`);
+  [0,50,100,150,200].forEach(v=>it+=`<text x="44" y="${ly(v)+4}" text-anchor="end">${v}%</text>`);
+  const EVT=[[.085,78,1,'Sag'],[.03,55,0,'Sag'],[.2,112,1,'Swell'],[.008,0,1,L('순간정전','Interruption')],[1.2,86,1,'Sag']];
+  EVT.forEach(([t,v,ok])=>it+=`<circle cx="${lx(t)}" cy="${ly(v)}" r="6" fill="var(--${ok?'accent-2':'crit'})" stroke="var(--panel)" stroke-width="2"/>`);
+  const evl=EVT.map(([t,v,ok,ty],i)=>`<tr><td class="num">10/${pad(25-i)} ${pad(3+i*4)}:${pad(17*i%60)}</td><td>${ty}</td><td class="r num">${v}%</td><td class="r num">${t<1?fmt(t*1000,0)+' ms':t+' s'}</td><td><span class="pill ${ok?'s-ok':'s-crit'}">${ok?L('ITIC 이내','Within ITIC'):L('ITIC 이탈','Outside ITIC')}</span></td></tr>`).join('');
+  const en=[[L('주파수','Frequency'),'99.9 %'],[L('공급 전압 변동','Supply voltage'),'100 %'],[L('플리커 Plt','Flicker Plt'),'99.6 %'],[L('불평형','Unbalance'),'100 %'],[L('전압 THD','Voltage THD'),'100 %'],[L('개별 고조파','Individual harmonics'),'99.8 %']];
+  return `<div class="card c12" style="flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px"><div><h3 style="margin:0;font-size:14px">${m.panel} · ${m.id}</h3><span class="sub">${L('GEMS3700 · IEC 61000-4-30 Class S · 533 샘플/사이클 · 63차 고조파 · 파형 캡처','GEMS3700 · IEC 61000-4-30 Class S · 533 samples/cycle · harmonics to 63rd · waveform capture')}</span></div>${meterSel()}</div>
+  ${tiles}
+  <div class="card c6"><div class="ch"><h3>${L('파형 캡처 (전압 3상 · R상 전류)','Waveform capture (3-phase V · phase R current)')}</h3><span class="legend"><span><i style="background:var(--pr)"></i>V R</span><span><i style="background:var(--ps)"></i>V S</span><span><i style="background:var(--pt)"></i>V T</span><span><i style="background:var(--accent)"></i>I R</span></span></div><svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="${L('파형','Waveform')}">${wv}</svg><div class="sub">${L('2 사이클 · 이벤트 발생 시 자동 저장','2 cycles · stored automatically on events')}</div></div>
+  <div class="card c6"><div class="ch"><h3>${L('전류 고조파 스펙트럼 (기본파 대비 %)','Current harmonic spectrum (% of fundamental)')}</h3><span class="sub">2–31 / 63</span></div><svg viewBox="0 0 ${HW} ${HH}" class="chart" role="img" aria-label="${L('고조파','Harmonics')}">${hb}</svg><div class="sub">${L('IT 부하 특성상 5·7·11차가 지배적 · 63차까지 기록','5th, 7th and 11th dominate, typical of IT loads · recorded to the 63rd')}</div></div>
+  <div class="card c7"><div class="ch"><h3>${L('ITIC (CBEMA) 곡선 · 전압 이벤트','ITIC (CBEMA) curve · voltage events')}</h3><span class="legend"><span><i style="background:var(--accent-2)"></i>${L('허용 범위 내','Within')}</span><span><i style="background:var(--crit)"></i>${L('이탈','Outside')}</span></span></div><svg viewBox="0 0 ${IW} ${IH}" class="chart" role="img" aria-label="ITIC">${it}</svg>
+    <div class="tbl"><table><thead><tr><th>${L('발생','Time')}</th><th>${L('종류','Type')}</th><th class="r">${L('잔류 전압','Residual V')}</th><th class="r">${L('지속','Duration')}</th><th>${L('판정','Result')}</th></tr></thead><tbody>${evl}</tbody></table></div></div>
+  <div class="card c5"><div class="ch"><h3>${L('EN50160 주간 적합성','EN50160 weekly compliance')}</h3><span class="pill s-ok">${L('적합','Compliant')}</span></div>
+    <div class="tbl"><table><thead><tr><th>${L('항목','Parameter')}</th><th class="r">${L('기준 충족 시간','Time within limit')}</th></tr></thead><tbody>${en.map(x=>`<tr><td>${x[0]}</td><td class="r num">${x[1]}</td></tr>`).join('')}</tbody></table></div>
+    <div class="stats"><div class="stat"><span class="l">${L('상전압 R/S/T','Phase V R/S/T')}</span><span class="v" style="font-size:14px">${(221.4+g()).toFixed(1)} / ${(220.8+g()).toFixed(1)} / ${(221.9+g()).toFixed(1)} V</span></div><div class="stat"><span class="l">${L('전압 THD R/S/T','V THD R/S/T')}</span><span class="v" style="font-size:14px">${vt.map(v=>v.toFixed(1)).join(' / ')} %</span></div></div>
+    <button class="btn">${L('EN50160 주간 리포트 다운로드','Download EN50160 weekly report')}</button></div>`;
+}
+
+function vMeters(){
+  const s=site(); const all=[];s.rooms.forEach((r,i)=>meters(r).forEach((m,j)=>all.push({m,r,i,j})));
+  const rows=all.map(({m,r,i,j})=>{const kw=circuits0(m,r).reduce((a,c)=>a+c,0),sel=i===ri&&j===selMeter;return `<tr class="hit ${sel?'sel':''}" data-meter="${i}:${j}"><td class="num">${m.id}</td><td>${rname(r)}</td><td>${m.panel}</td><td>gems3736 · ${m.mode}</td><td class="r num">${m.ch.filter(c=>!c.k.empty).length}/${m.ch.length}</td><td class="r num">${kfmt(kw)}</td><td class="num">${m.ip}</td><td><span class="pill s-${m.status==='ok'?'ok':'warn'}">${m.status==='ok'?'Modbus TCP · 1 s':L('재시도 중','Retrying')}</span></td></tr>`}).join('');
+  const m=curMeter(), r=room(), cs=circuits(m);
+  const grid=cs.map(c=>{const pc=c.a/c.brk*100;return `<div class="chc" style="background:${c.k.empty?'var(--panel-3)':`var(${H[utilBin(pc)]})`};${c.k.empty?'color:var(--muted)':''}"><b>CH${pad(c.no)}</b>${c.k.empty?L('예비','spare'):c.k.id+c.side}<br>${c.k.empty?'':c.kw.toFixed(1)+'kW'}</div>`}).join('');
+  return `<div class="card c8"><div class="ch"><div><h3>${L('GEMS3700 멀티채널 전력량계','GEMS3700 multi-circuit meters')} · ${s.name}</h3><span class="sub">${L(`${all.length}대 · ${all.reduce((a,x)=>a+x.m.ch.length,0)}개 회로 · 엔텍시스템 · Modbus TCP 2포트(스위치 허브) 데이지체인`,`${all.length} devices · ${all.reduce((a,x)=>a+x.m.ch.length,0)} circuits · NTEK System · daisy-chained over 2 Ethernet ports (switch hub)`)}</span></div><span class="pill s-${all.some(x=>x.m.status!=='ok')?'warn':'ok'}">${L('통신 성공률','Comm success')} 99.97%</span></div>
+    <div class="tbl"><table><thead><tr><th>${L('계측기','Meter')}</th><th>${L('서버룸','Room')}</th><th>${L('분전반','Panel')}</th><th>${L('모델 · 모드','Model · mode')}</th><th class="r">${L('사용 채널','Channels')}</th><th class="r">${L('부하','Load')}</th><th>IP</th><th>${L('상태','Status')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card c4"><div class="ch"><div><h3 class="num">${m.id}</h3><span class="sub">${m.panel} · ${rname(r)} · FW ${m.fw}</span></div><span class="pill s-${m.status==='ok'?'ok':'warn'}">${m.status==='ok'?L('정상','Online'):L('재시도','Retrying')}</span></div>
+    <div class="chgrid" style="${room().kind==='ai'?'grid-template-columns:repeat(4,minmax(0,1fr))':''}">${grid}</div>
+    <div class="stats"><div class="stat"><span class="l">${L('메인 (3상)','Main (3-phase)')}</span><span class="v">${kfmt(cs.reduce((a,c)=>a+c.kw,0))}</span></div><div class="stat"><span class="l">${L('누설전류','Leakage')}</span><span class="v">${m.leak} mA</span></div><div class="stat"><span class="l">${L('메인 CT','Main CT')}</span><span class="v" style="font-size:12px">${m.mainCT} Rogowski</span></div><div class="stat"><span class="l">${L('분기 CT','Branch CT')}</span><span class="v" style="font-size:12px">${m.brCT} split-core</span></div></div>
+    <div class="spec"><span>IEC 62053-22 Class 0.2S</span><span>533 samples/cycle</span><span>${L('고조파 63차','Harmonics 63rd')}</span><span>Sag/Swell · ITIC · EN50160</span><span>Modbus TCP/RTU</span><span>SNTP</span><span>${L('DIN 레일 · 168.9 mm','DIN-rail · 168.9 mm')}</span></div>
+    <button class="btn" data-go="quality">${L('이 계측기 전력품질 보기','Open power quality for this meter')}</button></div>`;
+}
+const circuits0=(m,r)=>m.ch.map(c=>feedKW(c.k,c.side));
+
+function vNdcp(){
+  const eff=94.1+Math.sin(Date.now()/5e4)*.6, inP=4668+rnd()*40;
+  const units=Array.from({length:8},(_,i)=>{const bad=i===2;return `<div class="unit"><div class="h"><span>Unit ${i+1}</span><span class="pill ${bad?'s-crit':'s-ok'}">${bad?L('이상','Fault'):L('정상','OK')}</span></div><div class="dots"><span>ON/OFF</span><span class="dot" style="background:var(--ok)"></span><span>${L('AC 입력','AC input')}</span><span class="dot" style="background:var(--ok)"></span><span>AUX PSU</span><span class="dot" style="background:var(--${bad?'crit':'ok'})"></span><span>PMBus</span><span class="dot" style="background:var(--ok)"></span></div><div class="num" style="font-weight:600">${(52+rnd()*1.2).toFixed(1)} V · ${(9+rnd()*3).toFixed(1)} A</div></div>`}).join('');
+  return `<div class="card c8"><div class="ch"><div><h3>${L('NDCP-02 · DC 전원 시스템','NDCP-02 · DC power system')}</h3><span class="sub">IP 10.12.4.21 · ${L('수집주기 60초','polled every 60 s')}</span></div><span class="pill s-warn">${L('Unit 1대 이상','1 unit faulted')}</span></div>
+    <div class="row" style="gap:20px">${ring(eff,92,'var(--ok)',L('효율','Efficiency'))}<div class="stats" style="flex:1;min-width:280px"><div class="stat"><span class="l">${L('입력 전력','Input power')}</span><span class="v">${fmt(inP)} W</span></div><div class="stat"><span class="l">${L('출력 전력','Output power')}</span><span class="v">${fmt(inP*eff/100)} W</span></div><div class="stat"><span class="l">${L('입력 AC','AC input')}</span><span class="v">220 V</span></div><div class="stat"><span class="l">${L('출력 DC','DC output')}</span><span class="v">53.5 V</span></div></div></div>
+    <div class="units">${units}</div></div>
+  <div class="card c4"><div class="ch"><h3>${L('원격 제어','Remote control')}</h3><span class="sub">Efficiency Auto Control</span></div>
+    <div class="row" style="justify-content:space-between"><span>${L('자동 제어 모드','Auto control mode')}</span><button class="switch" id="ndcpAuto" role="switch" aria-checked="${ndcpAuto}" aria-label="${L('자동 제어 모드','Auto control mode')}"></button></div>
+    <label class="sub" for="ndcpV">${L('출력 전압 설정 (V)','Output voltage (V)')}</label><input class="f num" id="ndcpV" value="53.5" ${ndcpAuto?'disabled':''}>
+    <label class="sub" for="ndcpU">${L('대상 Unit','Target unit')}</label><select class="f" id="ndcpU" ${ndcpAuto?'disabled':''}>${[1,2,3,4,5,6,7,8].map(i=>`<option>Unit ${i}</option>`).join('')}</select>
+    <button class="btn acc" id="ndcpSend" ${ndcpAuto?'disabled':''}>${L('제어 요청 전송','Send control request')}</button>
+    <div class="sub">${ndcpAuto?L('자동 모드에서는 제어 요청이 잠깁니다. 스위치를 꺼서 수동으로 전환하세요.','Requests are locked in auto mode. Turn the switch off for manual.'):L('수동 모드입니다. 요청은 xIDC Net이 장비로 전달합니다.','Manual mode. xIDC Net forwards requests to the device.')}</div>
+    <div class="list">${ndcpReq.map(r=>`<div class="li"><span class="grow"><b>${esc(r.m)}</b><span class="sub">${r.t}</span></span><span class="pill ${r.s==='done'?'s-ok':'s-warn'}">${r.s==='done'?L('완료','Done'):L('처리 중','Pending')}</span></div>`).join('')}</div></div>`;
+}
+
+function vCapacity(){
+  const s=site(), S=sstats(s);
+  const rows=s.rooms.map((r,i)=>{const x=S.rs[i],alloc=x.cap*.8,str=Math.max(0,alloc-x.used*1.08),gr=r.kind==='ai'?.06:.022;let mo=0,v=x.used;while(v<r.design*.8&&mo<60){v*=1+gr;mo++}
+    return `<tr class="hit ${i===ri?'sel':''}" data-room="${i}"><td><b>${rname(r)}</b></td><td class="r num">${kfmt(x.used)}</td><td class="r num">${kfmt(r.design)}</td><td>${bar(x.pct)}</td><td>${bar(x.coolLoad/r.cool*100)}</td><td>${bar(x.live/x.n*100)}</td><td class="r num">${kfmt(str)}</td><td class="r num">${mo>=60?'60+':mo} ${L('개월','mo')}</td></tr>`}).join('');
+  const r=room(), x=S.rs[ri], gr=r.kind==='ai'?.06:.022; const past=[],fut=[];
+  for(let i=5;i>=0;i--)past.push(x.used/Math.pow(1+gr,i)*(1+(i%2?-.01:.01)));
+  const series=[...past];for(let i=1;i<=12;i++)series.push(x.used*Math.pow(1+gr,i));
+  const W=640,Hh=210,L0=56,mx=Math.max(r.design,...series)*1.08,xx=i=>L0+i*(W-L0-14)/17,yy=v=>14+(1-v/mx)*(Hh-40);let g='';
+  [0,.25,.5,.75,1].forEach(f=>{const v=mx*f;g+=`<line x1="${L0}" x2="${W-14}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${L0-6}" y="${yy(v)+4}" text-anchor="end">${fmt(v)}</text>`});
+  g+=`<line x1="${L0}" x2="${W-14}" y1="${yy(r.design*.8)}" y2="${yy(r.design*.8)}" stroke="var(--crit)" stroke-dasharray="6 4"/><text x="${W-14}" y="${yy(r.design*.8)-6}" text-anchor="end" style="fill:var(--crit)">${L('설계 80%','80% of design')}</text>`;
+  g+=`<line x1="${L0}" x2="${W-14}" y1="${yy(r.design)}" y2="${yy(r.design)}" stroke="var(--faint)"/><text x="${W-14}" y="${yy(r.design)-6}" text-anchor="end">${L('설계 전력','Design')} ${kfmt(r.design)}</text>`;
+  g+=`<polyline points="${series.slice(0,6).map((v,i)=>`${xx(i)},${yy(v)}`).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.6"/><polyline points="${series.slice(5).map((v,i)=>`${xx(i+5)},${yy(v)}`).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-dasharray="6 4"/>`;
+  const mn=EN?['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct']:['5월','6월','7월','8월','9월','10월','11월','12월','1월','2월','3월','4월','5월','6월','7월','8월','9월','10월'];
+  mn.forEach((l,i)=>{if(i%3===0||i===5)g+=`<text x="${xx(i)}" y="${Hh-8}" text-anchor="middle" style="${i===5?'fill:var(--fg);font-weight:600':''}">${l}</text>`});
+  const add=wiN*wiK, after=x.used+add, pa=after/r.design*100, cool=(x.coolLoad+add)/r.cool*100;
+  return `<div class="card c12"><div class="ch"><div><h3>${L('용량 현황 · 전력·냉방·공간','Capacity · power, cooling, space')}</h3><span class="sub">${L('유휴 용량 = 할당 전력 − 실측 피크 · 잔여 기간 = 설계 80% 도달 예상','Stranded = allocated − measured peak · runway = months until 80% of design')}</span></div><span class="sub">${L('행을 누르면 예측이 바뀝니다','Select a row to forecast it')}</span></div>
+    <div class="tbl"><table><thead><tr><th>${L('서버룸','Room')}</th><th class="r">${L('실사용 IT','IT load')}</th><th class="r">${L('설계 전력','Design')}</th><th>${L('전력','Power')}</th><th>${L('냉방','Cooling')}</th><th>${L('공간(랙)','Space (racks)')}</th><th class="r">${L('유휴 용량','Stranded')}</th><th class="r">${L('잔여 기간','Runway')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card c8"><div class="ch"><h3>${rname(r)} · ${L('IT 전력 추이와 12개월 예측 (kW)','IT power trend and 12-month forecast (kW)')}</h3><span class="sub">${L(`월 성장률 ${(gr*100).toFixed(1)}% (최근 6개월 실측 기반)`,`growth ${(gr*100).toFixed(1)}%/month from last 6 months`)}</span></div><svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="${L('용량 예측','Capacity forecast')}">${g}</svg></div>
+  <div class="card c4"><div class="ch"><h3>${L('What-if · 증설 시뮬레이션','What-if · add racks')}</h3><span class="sub">${rname(r)}</span></div>
+    <div class="row"><label class="sub" for="wiN">${L('추가 랙 수','Racks to add')}</label><input class="f num" id="wiN" type="number" min="0" max="40" value="${wiN}" style="width:80px"><label class="sub" for="wiK">${L('랙당 kW','kW per rack')}</label><input class="f num" id="wiK" type="number" min="1" max="120" value="${wiK}" style="width:80px"></div>
+    <div class="bars"><div class="bar"><span>${L('현재 전력','Power now')}</span><span class="t"><i style="width:${Math.min(100,x.pct)}%;background:var(--ok)"></i></span><span class="n">${x.pct.toFixed(0)}%</span></div><div class="bar"><span>${L('증설 후 전력','Power after')}</span><span class="t"><i style="width:${Math.min(100,pa)}%;background:var(--${pa>90?'crit':pa>80?'warn':'ok'})"></i></span><span class="n">${pa.toFixed(0)}%</span></div><div class="bar"><span>${L('증설 후 냉방','Cooling after')}</span><span class="t"><i style="width:${Math.min(100,cool)}%;background:var(--${cool>90?'crit':cool>80?'warn':'ok'})"></i></span><span class="n">${cool.toFixed(0)}%</span></div></div>
+    <div class="stat"><span class="l">${L('판정','Verdict')}</span><span class="v" style="font-size:14px;font-family:var(--ui);white-space:normal">${pa>100||cool>100?L(`불가 · ${kfmt(after-r.design)} 초과`,`Not possible · ${kfmt(after-r.design)} over design`):pa>80||cool>80?L('가능하나 80% 초과 · 냉방 보강 검토','Possible but above 80% · review cooling'):L(`가능 · 증설 후 여유 ${kfmt(r.design*.8-after)}`,`OK · ${kfmt(r.design*.8-after)} headroom left`)}</span></div></div>`;
+}
+const bar=p=>`<div class="row" style="flex-wrap:nowrap;gap:8px;min-width:120px"><span style="flex:1;height:8px;border-radius:999px;background:var(--panel-3);overflow:hidden;display:block"><i style="display:block;height:100%;width:${Math.min(100,p)}%;background:var(--${p>85?'crit':p>70?'warn':'ok'});border-radius:999px"></i></span><span class="num" style="width:40px;text-align:right">${p.toFixed(0)}%</span></div>`;
+
+function vEsg(){
+  const s=site(),S=sstats(s), pm=[1.37,1.38,1.36,1.35,1.39,1.41,1.43,1.42,1.38,1.36,1.35,S.pue], mo=EN?['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct']:['11월','12월','1월','2월','3월','4월','5월','6월','7월','8월','9월','10월'];
+  const avg=pm.reduce((a,b)=>a+b,0)/12, ef=.4594, re=.18, mtd=S.fac*24*25/1000, co2=mtd*ef, cue=S.pue*ef;
+  const tiles=[[L('PUE 실시간','PUE live'),S.pue.toFixed(2),L('목표 1.30','target 1.30')],[L('PUE 12개월','PUE 12-month'),avg.toFixed(2),L('연평균','annualized')],['CUE',cue.toFixed(3),'kgCO2e/kWh IT'],['WUE','1.42','L/kWh IT'],[L('재생에너지','Renewables'),(re*100).toFixed(0)+' %','REC · PPA'],[L('10월 누적 탄소','Carbon Oct MTD'),fmt(co2,0),'tCO2e · Scope 2']]
+    .map(t=>`<div class="card kpi c2"><div class="l">${t[0]}</div><div class="v" style="font-size:24px">${t[1]}</div><div class="d sub" style="font-family:var(--ui)">${t[2]}</div></div>`).join('');
+  const brk=[[L('IT 장비','IT equipment'),1],[L('냉방','Cooling'),OVH.cool],[L('UPS·배전 손실','UPS & distribution loss'),OVH.ups],[L('조명·기타','Lighting & other'),OVH.light]].map(([n,v])=>[n,S.it*v]);
+  const cols=['var(--accent-2)','var(--h1)','var(--accent)','var(--faint)'];
+  const cm=pm.map((p,i)=>S.it*p*24*30*ef/1000*(.92+i*.012)), cmx=Math.max(...cm)*1.1, W=640, Hh=200; let cb='';
+  cm.forEach((v,i)=>{const bw=(W-60)/12,x=48+i*bw,h1=v/cmx*(Hh-40),h2=v*(1-re)/cmx*(Hh-40);cb+=`<rect x="${x}" y="${Hh-24-h1}" width="${bw*.38}" height="${h1}" rx="3" fill="var(--faint)"/><rect x="${x+bw*.42}" y="${Hh-24-h2}" width="${bw*.38}" height="${h2}" rx="3" fill="var(--ok)"/><text x="${x+bw*.4}" y="${Hh-8}" text-anchor="middle">${mo[i]}</text>`});
+  [0,.5,1].forEach(f=>cb+=`<text x="40" y="${Hh-24-f*(Hh-40)+4}" text-anchor="end">${fmt(cmx*f)}</text>`);
+  return tiles+`<div class="card c8"><div class="ch"><h3>${L('월별 PUE (12개월)','Monthly PUE (12 months)')}</h3><span class="sub">${L('여름철 냉방 부하로 상승 · 목표선 1.30','rises with summer cooling load · target line 1.30')}</span></div>${areaChart(pm,null,{w:640,h:200,unit:'',n:12,xl:i=>mo[i],dec:2,step:.05,limit:1.3,limitLbl:L('목표 1.30','Target 1.30')})}</div>
+  <div class="card c4"><div class="ch"><h3>${L('시설 전력 구성','Facility power breakdown')}</h3><span class="sub">${L('실시간','Live')}</span></div><div class="row" style="flex-wrap:nowrap;gap:14px">${donut(brk,cols,'PUE',S.pue.toFixed(2))}${legendList(brk,cols,v=>(v/S.fac*100).toFixed(1)+'%')}</div></div>
+  <div class="card c8"><div class="ch"><h3>${L('월별 탄소 배출 (tCO2e, Scope 2)','Monthly carbon (tCO2e, Scope 2)')}</h3><span class="legend"><span><i style="background:var(--faint)"></i>${L('지역 기준','Location-based')}</span><span><i style="background:var(--ok)"></i>${L('시장 기준 (RE 반영)','Market-based (with RE)')}</span></span></div><svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="${L('탄소 배출','Carbon')}">${cb}</svg></div>
+  <div class="card c4"><div class="ch"><h3>${L('ESG 리포트','ESG reports')}</h3></div><div class="list">${[[L('ESG 월간 리포트 (9월)','ESG monthly (Sep)'),'PDF · Excel'],[L('GHG Scope 2 (지역/시장 기준)','GHG Scope 2 (location / market)'),'Excel'],[L('그린 인증 증빙 패키지 (PUE·WUE)','Green certification evidence (PUE · WUE)'),'ZIP'],[L('고객별 탄소 배분 (코로케이션)','Carbon allocation per tenant'),'CSV']].map(r=>`<div class="li"><span class="grow"><b>${r[0]}</b><span class="sub">${r[1]}</span></span><button class="btn sm">${L('다운로드','Download')}</button></div>`).join('')}</div></div>`;
+}
+
+function vBilling(){
+  const s=site(), S=sstats(s), map={};
+  s.rooms.forEach(r=>r.racks.forEach(k=>{if(!k.empty&&CUST.includes(k.owner)){const c=map[k.owner]||(map[k.owner]={n:k.owner,racks:0,contract:0,kw:0,rooms:new Set()});c.racks++;c.contract+=k.type==='gpu'?35:k.type==='hpc'?16:5;c.kw+=k.kw;c.rooms.add(rname(r))}}));
+  const cs=Object.values(map); if(!cs.length)return `<div class="card c12"><div class="empty">${L('이 사이트에는 코로케이션 고객이 없습니다. 춘천 각 또는 가산을 선택하세요.','This site has no colocation tenants. Select Chuncheon GAK or Gasan.')}</div></div>`;
+  if(selCust>=cs.length)selCust=0;
+  const rows=cs.map((c,i)=>{const peak=c.kw*1.07,pct=peak/c.contract*100,mtd=c.kw*24*25*.97;return `<tr class="hit ${i===selCust?'sel':''}" data-cust="${i}"><td><b>${c.n}</b><span class="sub" style="display:block">${[...c.rooms].join(', ')}</span></td><td class="r num">${c.racks}</td><td class="r num">${fmt(c.contract)} kW</td><td class="r num">${fmt(peak,1)} kW</td><td>${bar(pct)}</td><td class="r num">${fmt(mtd)} kWh</td><td class="r num">${fmt(mtd*S.pue)} kWh</td><td><span class="pill s-${pct>100?'crit':pct>90?'warn':'ok'}">${pct>100?L('계약 초과','Over contract'):pct>90?L('근접','Near limit'):L('정상','Within')}</span></td></tr>`}).join('');
+  const c=cs[selCust], d=Array.from({length:25},(_,i)=>c.kw*1.07*(.93+.05*Math.sin(i/2.2)+.02*Math.sin(i*1.9)));
+  return `<div class="card c8"><div class="ch"><div><h3>${L('고객별 전력 사용 · 10월 (1–25일)','Power use by tenant · October 1–25')}</h3><span class="sub">${L('15분 수요 피크 기준 · 청구 kWh = 실측 IT kWh × 사이트 PUE (계약 방식별 설정)','Peak = 15-min demand · billed kWh = metered IT kWh × site PUE (per contract)')}</span></div><div class="row"><button class="btn sm">CSV</button><button class="btn sm">ERP API</button></div></div>
+    <div class="tbl"><table><thead><tr><th>${L('고객','Tenant')}</th><th class="r">${L('랙','Racks')}</th><th class="r">${L('계약 전력','Contracted')}</th><th class="r">${L('피크 수요','Peak demand')}</th><th>${L('계약 대비','vs contract')}</th><th class="r">${L('IT 전력량','IT energy')}</th><th class="r">${L('청구 전력량','Billed energy')}</th><th>${L('상태','Status')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card c4"><div class="ch"><h3>${c.n}</h3><span class="sub">${L('일별 피크 수요 (kW)','Daily peak demand (kW)')}</span></div>${areaChart(d,null,{w:420,h:200,unit:'kW',n:25,xl:i=>(i+1)+'',dec:0,limit:c.contract,limitLbl:L('계약','Contract')})}
+    <div class="stats"><div class="stat"><span class="l">${L('현재 부하','Live load')}</span><span class="v">${fmt(c.kw,1)} kW</span></div><div class="stat"><span class="l">${L('예상 월 전력량','Projected month')}</span><span class="v">${fmt(c.kw*24*31*.97*S.pue)} kWh</span></div></div>
+    <div class="sub">${L('랙 피드 단위 GEMS 계량(Class 0.2S) 데이터로 산출 · 고객 포털로 공유 가능','Computed from GEMS rack-feed metering (Class 0.2S) · shareable through a tenant portal')}</div></div>`;
+}
+
+function vAlarms(){
+  const c=s=>events.filter(e=>e.state===s).length, open=events.filter(e=>e.state!=='closed');
+  const tiles=[[ST.open,c('open'),'crit'],[ST.ack,c('ack'),'warn'],[ST.closed,c('closed'),'fg'],[L('Fatal 미종료','Fatal open'),open.filter(e=>e.sev==='Fatal').length,'crit'],[L('Critical 미종료','Critical open'),open.filter(e=>e.sev==='Critical').length,'warn'],[L('평균 인지 시간','Mean time to ack'),L('4분 12초','4 m 12 s'),'fg']]
+    .map(t=>`<div class="card kpi c2"><div class="l">${t[0]}</div><div class="v" style="color:var(--${t[2]})">${t[1]}</div></div>`).join('');
+  const hb=Array.from({length:24},(_,i)=>[Math.round(1+Math.abs(Math.sin(i*1.3))*3),Math.round(Math.abs(Math.cos(i*.9))*2),i%9===3?1:0]), mx=Math.max(...hb.map(x=>x[0]+x[1]+x[2]));
+  const hist=hb.map((x,i)=>{let y=120,g='';[['--warn',x[0]],['--crit',x[1]],['--fatal',x[2]]].forEach(([col,v])=>{const hh=v/mx*100;y-=hh;if(v)g+=`<rect x="${10+i*30}" y="${y}" width="20" height="${hh}" rx="3" fill="var(${col})"/>`});return g+(i%3===0?`<text x="${20+i*30}" y="138" text-anchor="middle">${pad(i)}:00</text>`:'')}).join('');
+  const list=events.filter(e=>!evFilter||e.state===evFilter||e.sev===evFilter);
+  const rows=list.map(e=>`<tr data-ev="${e.id}" class="hit ${e.id===selEv?'sel':''}"><td><span class="pill sev-${e.sev}">${e.sev}</span></td><td class="num">${pad(e.time.getMonth()+1)}/${pad(e.time.getDate())} ${hm(e.time)}</td><td>${e.kind}</td><td style="white-space:normal;min-width:200px">${esc(e.msg)}</td><td><span class="pill st-${e.state}">${ST[e.state]}</span></td></tr>`).join('')||`<tr><td colspan="5" class="empty">${L('조건에 맞는 경보가 없습니다','No alarms match this filter')}</td></tr>`;
+  const e=events.find(x=>x.id===selEv)||events[0], order=['open','ack','closed'];
+  const steps=order.map((s,i)=>{const done=order.indexOf(e.state)>=i;return `<div class="row" style="gap:8px;flex-wrap:nowrap"><span class="dot" style="width:10px;height:10px;background:${done?'var(--accent)':'var(--panel-3)'}"></span><span style="${done?'':'color:var(--faint)'}">${ST[s]}</span></div>`}).join('<div style="width:2px;height:14px;background:var(--line);margin-left:4px"></div>');
+  return tiles+`<div class="card c12"><div class="ch"><h3>${L('24시간 경보 분포','Alarms in the last 24 h')}</h3><span class="legend"><span><i style="background:var(--warn)"></i>Warning</span><span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--fatal)"></i>Fatal</span></span></div><svg viewBox="0 0 730 146" class="chart" role="img" aria-label="${L('시간대별 경보','Alarms by hour')}">${hist}</svg></div>
+  <div class="card c8"><div class="ch"><h3>${L('경보 목록','Alarm list')}</h3><div class="row"><div class="chips" role="group">${[['',L('전체','All')],['open',ST.open],['ack',ST.ack],['closed',ST.closed],['Fatal','Fatal']].map(([f,l])=>`<button data-evf="${f}" aria-pressed="${evFilter===f}">${l}</button>`).join('')}</div><button class="btn sm" id="ackAll">${L('발생 모두 인지','Acknowledge all open')}</button></div></div>
+    <div class="tbl"><table><thead><tr><th>${L('심각도','Severity')}</th><th>${L('발생','Raised')}</th><th>${L('구분','Source')}</th><th>${L('내용','Message')}</th><th>${L('상태','State')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card c4"><div class="ch"><h3>${L('경보 상세','Alarm detail')}</h3><span class="pill sev-${e.sev}">${e.sev}</span></div><div><b style="font-size:15px">${esc(e.msg)}</b><div class="sub">${e.where}</div></div>
+    <div class="stats"><div class="stat"><span class="l">${L('발생 조건','Rule')}</span><span class="v" style="font-size:13px;font-family:var(--ui);white-space:normal">${e.rule}</span></div><div class="stat"><span class="l">${L('측정값','Measured')}</span><span class="v">${e.val}</span></div></div>
+    <div>${steps}</div><div class="sub">${L('통보: 담당자 SMS·Email·메신저 발송 · 30분 미인지 시 상위 에스컬레이션','Notified on-call by SMS, email and chat · escalates if not acknowledged in 30 min')}</div>
+    <div class="row">${e.state==='open'?`<button class="btn" data-ack="${e.id}">${L('인지','Acknowledge')}</button>`:''}${e.state!=='closed'?`<button class="btn pri" data-close="${e.id}">${L('종료','Close')}</button>`:`<span class="sub">${L('처리 완료된 경보입니다','This alarm is closed')}</span>`}</div></div>`;
+}
+
+function vReports(){
+  const s=site(), agg={};
+  s.rooms.forEach(r=>r.racks.forEach(k=>{if(k.empty)return;const key=rptTab==='owner'?k.owner:rptTab==='room'?rname(r):TYPES[k.type].lbl;const a=agg[key]||(agg[key]={kw:0,n:0,peak:0});a.kw+=k.kw;a.n++;a.peak+=k.kw*1.07}));
+  const ent=Object.entries(agg).sort((a,b)=>b[1].kw-a[1].kw), mx=ent[0][1].kw;
+  const bars=ent.slice(0,8).map(([n,v])=>`<div class="bar"><span>${n}</span><span class="t"><i style="width:${v.kw/mx*100}%;background:var(--accent-2)"></i></span><span class="n">${fmt(v.kw*24/1000,2)} MWh</span></div>`).join('');
+  const rows=ent.map(([n,v])=>`<tr><td>${n}</td><td class="r num">${v.n}</td><td class="r num">${fmt(v.kw,1)}</td><td class="r num">${fmt(v.peak,1)}</td><td class="r num">${fmt(v.kw*24)}</td><td class="r num">${(v.kw*24*.000229).toFixed(2)}</td></tr>`).join('');
+  return `<div class="card c7"><div class="ch"><h3>${L('분석','Analysis')}</h3><div class="chips" role="group">${[['owner',L('서비스·고객별','By service / tenant')],['room',L('서버룸별','By room')],['type',L('랙 유형별','By rack type')]].map(([k,l])=>`<button data-rpt="${k}" aria-pressed="${rptTab===k}">${l}</button>`).join('')}</div></div>
+    <div class="sub">${L('일 전력량 (MWh) · 10/18–10/24 일평균','Daily energy (MWh) · average of Oct 18–24')}</div><div class="bars">${bars}</div>
+    <div class="tbl"><table><thead><tr><th>${L('구분','Group')}</th><th class="r">${L('랙','Racks')}</th><th class="r">${L('평균 kW','Avg kW')}</th><th class="r">${L('피크 kW','Peak kW')}</th><th class="r">${L('kWh/일','kWh/day')}</th><th class="r">TOE/${L('일','day')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="c5" style="display:grid;gap:16px;align-content:start">
+    <form class="card" id="rptForm"><div class="ch"><h3>${L('리포트 생성','Generate report')}</h3><span class="sub">${L('전력·PQ·온도·이벤트·탄소','Power, PQ, temperature, alarms, carbon')}</span></div>
+      <div class="chips" role="group">${[L('일간','Daily'),L('주간','Weekly'),L('월간','Monthly')].map(c=>`<button type="button" data-cyc="${c}" aria-pressed="${rptCycle===c}">${c}</button>`).join('')}</div>
+      <label class="sub" for="rptTarget">${L('대상','Scope')}</label><select class="f" id="rptTarget">${s.rooms.map(r=>`<option>${s.name} · ${rname(r)}</option>`).join('')}<option selected>${s.name} · ${L('센터 전체','Whole site')}</option></select>
+      <div class="row" style="justify-content:space-between"><span>${L('자동 생성 · 메일 발송','Generate and email automatically')}</span><button type="button" class="switch" id="rptAuto" role="switch" aria-checked="${rptAuto}" aria-label="${L('자동 생성','Auto generate')}"></button></div>
+      <button class="btn acc" type="submit">${L('리포트 생성','Generate report')}</button></form>
+    <div class="card"><div class="ch"><h3>${L('생성된 리포트','Reports')}</h3><span class="sub">${reports.length}</span></div><div class="list">${reports.map(r=>`<div class="li"><span class="grow"><b>${esc(r.n)}</b><span class="sub">${r.p}${r.auto?L(' · 자동',' · auto'):''}</span></span><span class="pill s-ok">${L('완료','Done')}</span><button class="btn sm" type="button">Excel</button></div>`).join('')}</div></div></div>`;
+}
+
+function vInspect(){
+  const t=TARGETS[ti]; const tree=TARGETS.map((x,i)=>(i===0||TARGETS[i-1].g!==x.g?`<div class="g">${x.g}</div>`:'')+`<button data-ti="${i}" aria-current="${i===ti}"><span>${x.name}</span><span class="pill s-off">${x.cyc}</span></button>`).join('');
+  const items=t.items.map((it,i)=>{const key=ti+'-'+i; let ctl;
+    if(it[2]!=='num'){const v=inspVals[key]||'ok';const lb=it[2]==='onoff'?['OFF','ON']:[L('양호','Normal'),L('이상','Fault')];ctl=`<span class="seg2" role="radiogroup" aria-label="${it[0]}"><label><input type="radio" name="i${i}" value="ok" ${v==='ok'?'checked':''}><span>${lb[0]}</span></label><label class="badc"><input type="radio" name="i${i}" value="bad" ${v==='bad'?'checked':''}><span>${lb[1]}</span></label></span>`}
+    else{const v=inspVals[key]??it[6], bad=v<it[3]||v>it[4]||isNaN(v), lo=it[3]-(it[4]-it[3])*.3, hi=it[4]+(it[4]-it[3])*.3, pos=Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+      ctl=`<div><input class="numin ${bad?'bad':''}" name="i${i}" id="i${i}" inputmode="decimal" value="${v}" aria-label="${it[0]} (${it[5]})"> <span class="sub">${it[5]}</span><div class="range"><i style="left:${(it[3]-lo)/(hi-lo)*100}%;right:${100-(it[4]-lo)/(hi-lo)*100}%"></i><b style="left:calc(${pos}% - 1px);background:${bad?'var(--crit)':'var(--fg)'}"></b></div></div>`}
+    return `<div class="chk"><span class="t"><b>${it[0]}</b><span class="sub">${t.g} · ${t.name}</span></span><span class="sub">${it[1]}</span>${ctl}</div>`}).join('');
+  const done=hist.filter(h=>h.d.startsWith('2026-10-25')).length;
+  return `<div class="card c3"><div class="ch"><h3>${L('점검 대상','Inspection targets')}</h3><span class="sub">${L('오늘','Today')} ${done}/5</span></div><div class="row" style="justify-content:center">${ring(done/5*100,96,'var(--accent)',L('오늘 점검 진행률','Done today'))}</div><div class="tree">${tree}</div></div>
+  <form class="card c6" id="inspForm" novalidate><div class="ch"><div><h3>${t.name} · ${t.cyc} ${L('점검','inspection')}</h3><span class="sub">${L('항목은 점검대상관리에서 정의 · 기준을 벗어나면 붉게 표시 · 모바일 입력 지원','Items come from target setup · out-of-range values turn red · works on mobile')}</span></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${items}</div>
+    <div class="row" style="justify-content:space-between"><div class="row"><label class="sub" for="who">${L('점검자','Inspector')}</label><input class="f" id="who" value="${L('김현장','J. Kim')}" size="8"></div><div class="row"><span class="sub" id="saved" aria-live="polite"></span><button class="btn acc" type="submit">${L('점검 등록','Submit inspection')}</button></div></div></form>
+  <div class="card c3"><div class="ch"><h3>${L('점검 이력','History')}</h3></div><div class="list">${hist.slice(0,7).map(h=>`<div class="li"><span class="grow"><b>${esc(h.t)}</b><span class="sub">${h.d} · ${esc(h.who)}</span></span><span class="pill ${h.bad?'s-crit':'s-ok'}">${h.bad?L(`이상 ${h.bad}`,`${h.bad} fault`):L('양호','Normal')}</span></div>`).join('')}</div></div>`;
+}
+
+function vSettings(){
+  const r=room(), rows=ROWL.slice(0,r.rows).split(''), k=r.racks.find(x=>x.id===mapSel)||r.racks[0], cw=r.cols>10?44:52;
+  let g='';r.racks.forEach(x=>{const i2=rows.indexOf(x.row),X=24+(x.col-1)*cw,Y=30+i2*46+Math.floor(i2/2)*20;
+    g+=`<rect class="hit" data-map="${x.id}" x="${X}" y="${Y}" width="${cw-6}" height="34" rx="5" fill="${x.empty?'var(--panel-3)':x.mapped?'var(--accent-2-soft)':'var(--panel)'}" stroke="${x.id===mapSel?'var(--accent)':x.mapped?'var(--accent-2)':'var(--faint)'}" stroke-width="${x.id===mapSel?3:1.2}" stroke-dasharray="${x.mapped||x.empty?'':'4 3'}"/><text x="${X+(cw-6)/2}" y="${Y+22}" text-anchor="middle" style="font-size:10px;pointer-events:none">${x.col}</text>`});
+  rows.forEach((x,i)=>{g+=`<text x="10" y="${52+i*46+Math.floor(i/2)*20}" text-anchor="middle" class="lbl">${x}</text>`});
+  const vbH=40+rows.length*46+Math.floor(rows.length/2)*20, vbW=24+r.cols*cw+10;
+  const unm=r.racks.filter(x=>!x.empty&&!x.mapped).length, m=curMeter();
+  const circ=circuits(m).slice(0,8).map(c=>`<tr><td class="num">CH${pad(c.no)}</td><td><span class="ph ph-${c.ph}">${c.ph}</span></td><td class="num">${m.id}</td><td><select class="f" aria-label="CH${c.no}">${r.racks.slice(0,24).map(y=>`<option ${y.id===c.k.id?'selected':''}>${y.id}</option>`).join('')}</select></td><td>${L('피드','Feed')} ${c.side}</td><td class="num">${m.brCT}</td></tr>`).join('');
+  const ints=[['Modbus TCP / RTU',L(`GEMS3700 ${SITES.reduce((a,s)=>a+s.rooms.reduce((b,x)=>b+meters(x).length,0),0)}대 · UPS · 발전기`,`${SITES.reduce((a,s)=>a+s.rooms.reduce((b,x)=>b+meters(x).length,0),0)} GEMS3700 · UPS · generator`)],['SNMP v3','UPS · PDU · CRAC'],['BACnet/IP',L('BMS · 칠러 · CDU','BMS · chillers · CDU')],['Redfish / IPMI',L('서버 BMC 전력·온도','Server BMC power & temperature')],['REST API · MQTT',L('ERP·청구·데이터레이크','ERP · billing · data lake')],['SAML / OIDC SSO',L('사내 IdP · RBAC','Corporate IdP · RBAC')],['Syslog / SIEM',L('감사 로그 전송','Audit log export')]];
+  return `<div class="card c8"><div class="ch"><div><h3>${L('상면도 맵 편집','Floor map editor')} · ${rname(r)}</h3><span class="sub">${L('객체를 누르고 장비를 지정 · 점선 = 미매핑','Select an object and assign a device · dashed = unmapped')}</span></div><span class="pill ${unm?'s-warn':'s-ok'}">${L(`미매핑 ${unm}`,`${unm} unmapped`)}</span></div>
+    <div class="tbl"><svg viewBox="0 0 ${vbW} ${vbH}" class="chart" style="min-width:520px" role="img" aria-label="${L('평면 도면','Floor plan')}">${g}</svg></div></div>
+  <div class="c4" style="display:grid;gap:16px;align-content:start">
+    <div class="card"><div class="ch"><h3>${L('객체 매핑','Object mapping')}</h3><span class="num">${k.id}</span></div>
+      <label class="sub" for="mapDev">${L('장비','Device')}</label><select class="f" id="mapDev">${r.racks.filter(x=>!x.empty).map(x=>`<option ${x.id===k.id?'selected':''}>RACK ${x.id}</option>`).join('')}</select>
+      <label class="sub" for="mapPerf">${L('표시 성능','Displayed metric')}</label><select class="f" id="mapPerf"><option>${L('실사용 kW (A+B)','Measured kW (A+B)')}</option><option>${L('흡기 온도','Inlet temp')}</option></select>
+      <div class="row" style="justify-content:space-between"><span class="sub">${mapSaved}</span><button class="btn acc" id="mapApply" ${k.empty?'disabled':''}>${L('매핑 적용','Apply mapping')}</button></div></div>
+    <div class="card"><div class="ch"><h3>${L('연동 · 프로토콜','Integrations · protocols')}</h3><span class="pill s-ok">${L('7개 연결','7 connected')}</span></div><div class="list">${ints.map(x=>`<div class="li"><span class="dot" style="background:var(--ok)"></span><span class="grow"><b>${x[0]}</b><span class="sub">${x[1]}</span></span></div>`).join('')}</div></div></div>
+  <div class="card c12"><div class="ch"><div><h3>${L('계측 채널 매핑','Meter channel mapping')} · ${m.panel}</h3><span class="sub">${L('GEMS 채널마다 랙·피드·CT를 연결 (상위 8개 표시)','Link each GEMS channel to a rack, feed and CT (first 8 shown)')}</span></div><button class="btn pri" id="circSave">${L('저장','Save')}</button></div>
+    <div class="tbl"><table><thead><tr><th>${L('채널','Channel')}</th><th>${L('상','Phase')}</th><th>${L('계측기','Meter')}</th><th>${L('매핑 랙','Rack')}</th><th>${L('피드','Feed')}</th><th>CT</th></tr></thead><tbody>${circ}</tbody></table></div></div>`;
+}
+
+const VIEWS={overview:vOverview,campus:vCampus,twin:vTwin,panel:vPanel,rack:vRack,quality:vQuality,meters:vMeters,ndcp:vNdcp,capacity:vCapacity,esg:vEsg,billing:vBilling,alarms:vAlarms,reports:vReports,inspect:vInspect,settings:vSettings};
+const LIVE=new Set(['overview','campus','twin','panel','rack','meters','ndcp','billing']);
+function render(){
+  V.innerHTML=VIEWS[view]();
+  $('#crumb').textContent=META[view][0]; $('#title').textContent=META[view][1];
+  document.querySelectorAll('.rail button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===view?'page':'false'));
+  $('#centers').innerHTML=SITES.map((c,i)=>`<button data-ci="${i}" aria-pressed="${i===ci}">${c.name}</button>`).join('');
+  $('#bellCnt').textContent=events.filter(e=>e.state==='open').length;
+}
+function go(v){view=v;render();try{localStorage.setItem('xidc-view',v)}catch(e){};window.scrollTo(0,0)}
+
+/* ---------- interactions ---------- */
+$('#rail').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(b)go(b.dataset.v)});
+$('#centers').addEventListener('click',e=>{const b=e.target.closest('[data-ci]');if(!b)return;ci=+b.dataset.ci;ri=0;selMeter=0;selCust=0;selRack=room().racks.find(k=>!k.empty).id;render()});
+V.addEventListener('click',e=>{
+  const t=e.target.closest('[data-go],[data-room],[data-rack],[data-mode],[data-circ],[data-evf],[data-ev],[data-ack],[data-close],[data-rpt],[data-cyc],[data-ti],[data-map],[data-meter],[data-cust],#ackAll,#ndcpAuto,#ndcpSend,#rptAuto,#mapApply,#circSave');
+  if(!t)return; const d=t.dataset;
+  if(d.go)return go(d.go);
+  if(d.room!==undefined){ri=+d.room;selMeter=0;selRack=room().racks.find(k=>!k.empty).id;return render()}
+  if(d.rack){selRack=d.rack;return render()}
+  if(d.mode){mode=d.mode;return render()}
+  if(d.circ){selCirc=+d.circ;return render()}
+  if(d.meter){const[a,b]=d.meter.split(':');ri=+a;selMeter=+b;return render()}
+  if(d.cust!==undefined){selCust=+d.cust;return render()}
+  if(d.evf!==undefined){evFilter=d.evf;return render()}
+  if(d.ack||d.close){const ev=events.find(x=>x.id==(d.ack||d.close));if(ev)ev.state=d.ack?'ack':'closed';return render()}
+  if(d.ev){selEv=+d.ev;return render()}
+  if(d.rpt){rptTab=d.rpt;return render()}
+  if(d.cyc){rptCycle=d.cyc;return render()}
+  if(d.ti!==undefined){ti=+d.ti;return render()}
+  if(d.map){mapSel=d.map;mapSaved='';return render()}
+  if(t.id==='ackAll'){events.forEach(x=>{if(x.state==='open')x.state='ack'});return render()}
+  if(t.id==='ndcpAuto'){ndcpAuto=!ndcpAuto;return render()}
+  if(t.id==='ndcpSend'){ndcpReq.unshift({t:`${pad(now().getMonth()+1)}/${pad(now().getDate())} ${hm(now())}`,m:L(`${$('#ndcpU').value} 출력전압 ${$('#ndcpV').value} V 설정`,`${$('#ndcpU').value}: set output ${$('#ndcpV').value} V`),s:'pending'});render();setTimeout(()=>{ndcpReq[0].s='done';if(view==='ndcp')render()},3000);return}
+  if(t.id==='rptAuto'){rptAuto=!rptAuto;return render()}
+  if(t.id==='mapApply'){const k=room().racks.find(x=>x.id===mapSel);if(k)k.mapped=true;mapSaved=L(`${mapSel}에 매핑했습니다`,`Mapped to ${mapSel}`);return render()}
+  if(t.id==='circSave'){t.textContent=L('저장했습니다','Saved');t.disabled=true;return}
+});
+V.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('g.hit')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
+V.addEventListener('change',e=>{const id=e.target.id;
+  if(id==='roomSel'){ri=+e.target.value;selMeter=0;selRack=room().racks.find(k=>!k.empty).id;render()}
+  if(id==='rackSel'){selRack=e.target.value;render()}
+  if(id==='meterSel'){selMeter=+e.target.value;selCirc=1;render()}
+  if(id==='wiN'||id==='wiK'){wiN=Math.max(0,+$('#wiN').value||0);wiK=Math.max(1,+$('#wiK').value||1);render()}
+  if(e.target.name&&/^i\d+$/.test(e.target.name)&&e.target.type==='radio'){inspVals[ti+'-'+e.target.name.slice(1)]=e.target.value;render()}
+  if(e.target.classList.contains('numin')){inspVals[ti+'-'+e.target.name.slice(1)]=parseFloat(e.target.value);render()}
+});
+V.addEventListener('submit',e=>{e.preventDefault();
+  if(e.target.id==='inspForm'){const t=TARGETS[ti];let bad=0;t.items.forEach((it,i)=>{const v=inspVals[ti+'-'+i];if(it[2]==='num'){const n=v??it[6];if(isNaN(n)||n<it[3]||n>it[4])bad++}else if(v==='bad')bad++});
+    hist.unshift({d:`2026-10-25 ${hm(now())}`,t:t.name,c:t.cyc,who:$('#who').value||'—',bad,n:t.items.length});render();$('#saved').textContent=bad?L(`등록했습니다 · 이상 ${bad}건`,`Submitted · ${bad} fault(s)`):L('등록했습니다 · 전 항목 양호','Submitted · all normal')}
+  if(e.target.id==='rptForm'){reports.unshift({n:`${$('#rptTarget').value} · ${rptCycle}`,p:L('2026-10-25 생성','Created 2026-10-25'),auto:rptAuto});render()}
+});
+let queue=[];
+function toast(ev){queue.push(ev);const f=queue[0];$('#toastSev').className='pill sev-'+f.sev;$('#toastSev').textContent=f.sev;$('#toastMsg').textContent=f.msg+' · '+f.where+(queue.length>1?L(` 외 ${queue.length-1}건`,` +${queue.length-1} more`):'');$('#toast').hidden=false}
+$('#toastAck').addEventListener('click',()=>{queue.forEach(x=>{if(x.state==='open')x.state='ack'});queue=[];$('#toast').hidden=true;render()});
+$('#toastGo').addEventListener('click',()=>{selEv=queue[0]?.id||selEv;queue=[];$('#toast').hidden=true;go('alarms')});
+$('#bell').addEventListener('click',()=>{evFilter='open';go('alarms')});
+$('#themeBtn').addEventListener('click',()=>{const r=document.documentElement,cur=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.dataset.theme=cur==='dark'?'light':'dark';try{localStorage.setItem('xidc-theme',r.dataset.theme)}catch(e){}});
+$('#langBtn').addEventListener('click',()=>{try{localStorage.setItem('xidc-lang',EN?'ko':'en');localStorage.setItem('xidc-view',view)}catch(e){};location.hash=view;location.reload()});
+function tick(){SITES.forEach(s=>s.rooms.forEach(r=>r.racks.forEach(k=>{if(k.empty)return;const j=k.type==='gpu'?.08:.03;k.kw=Math.max(.2,Math.min(k.cap*.99,k.base*(1+(rnd()-.5)*2*j)));k.inlet=Math.max(18,k.inletB+(rnd()-.5)*.6)})));
+  const a=document.activeElement; if(LIVE.has(view)&&!(a&&V.contains(a)&&a.matches('input,select')))render()}
+
+/* boot */
+const hv=TOK[0], ht=TOK.find(x=>x==='dark'||x==='light');
+let stv=null;try{stv=localStorage.getItem('xidc-view');const th=localStorage.getItem('xidc-theme');if(th)document.documentElement.dataset.theme=th}catch(e){}
+if(ht)document.documentElement.dataset.theme=ht;
+view=VIEWS[hv]?hv:(VIEWS[stv]?stv:'overview');
+render();
+if(!ht){setInterval(tick,4000);setInterval(()=>{if(document.visibilityState==='visible'){const ev=newEvent(0);events.unshift(ev);toast(ev);render()}},30000)}
+})();
+</script>
